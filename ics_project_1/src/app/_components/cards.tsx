@@ -2,6 +2,7 @@ import Image from "next/image";
 import { Button } from "~/components/ui/button";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useBook } from "../hooks/use-book";
 
 interface ImageCardProps {
   props: {
@@ -30,6 +31,36 @@ export function ImageCard(props: ImageCardProps) {
         </Link>
 
         {description && <p className="text-sm text-left">{description}</p>}
+      </div>
+    </div>
+  );
+}
+
+interface ServiceCardProps {
+  props: {
+    title: string;
+    description: string;
+    id: number;
+    completionTime: string;
+  };
+}
+
+export function ServiceCard(props: ServiceCardProps) {
+  const book = useBook();
+  const { title, description, id, completionTime } = props.props;
+  return (
+    <div
+      key={id}
+      onClick={() => book.setServiceType(id)}
+      className={`
+        ${book.serviceType === id && "border-primary border bg-primary text-white"}
+        rounded-md cursor-pointer hover:shadow-xs
+        `}
+    >
+      <div className="p-4  rounded-b-md">
+        <h2 className="text-xl font-bold">{title}</h2>
+        <p className="text-sm text-muted-foreground">{completionTime}</p>
+        <p className="text-sm text-muted-foreground">{description}</p>
       </div>
     </div>
   );

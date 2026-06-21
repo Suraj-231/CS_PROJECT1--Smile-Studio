@@ -31,7 +31,7 @@ export default function BookPage() {
   }
 
   return (
-    <div className="flex flex-col items-center gap-8">
+    <div className="flex flex-col items-center gap-8 py-4">
       <div className="flex flex-col items-center gap-4">
         <h1 className="text-primary text-xl">Book your appointment</h1>
 
