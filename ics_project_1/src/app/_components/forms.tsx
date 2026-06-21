@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useBook } from "../hooks/use-book";
-import { ServiceCard } from "./cards";
+import { ServiceCard, DentistCard } from "./cards";
 import {
   InputGroup,
   InputGroupAddon,
@@ -9,6 +9,32 @@ import {
 import { Input } from "~/components/ui/input";
 import { Search } from "lucide-react";
 
+const DENTISTS = [
+  {
+    id: 1,
+    name: "Mtume Owino",
+    specialty: "Comprehensive Oral Health & Diagnostics",
+    description:
+      "Dr. Omondi is a dedicated general practitioner who focuses on building a trusted foundation for long-term oral hygiene. Her practice specializes in thorough clinical examinations, advanced digital X-ray diagnostics, cavity prevention, and painless restorative fillings. Known for her calm and thorough approach, she excels at helping anxious patients feel entirely at ease while teaching practical preventative care routines.",
+    image: "",
+  },
+  {
+    id: 2,
+    name: "Dr. Faraj Patel ",
+    specialty: "Root Canal Therapy & Root Canal Retreatment",
+    description:
+      "Dr. Patel is a micro-endodontic specialist focused entirely on saving damaged, decayed, or severely traumatized teeth. By utilizing cutting-edge rotary instruments and precise apex locator technology, he transforms complex root canal therapies into highly efficient, comfortable, and predictable procedures. His clinical precision targets severe internal infections to eliminate constant throbbing pain and preserve natural teeth.",
+    image: "",
+  },
+  {
+    id: 3,
+    name: "Dr. Chloe Mwangi",
+    specialty: "Advanced Surgical Extractions & Impacted Wisdom Teeth",
+    description:
+      "Dr. Mwangi is a highly skilled oral surgeon specializing in the management and surgical removal of deeply impacted teeth, complex bone-grafted extractions, and trauma recovery. Backed by extensive clinical experience, she handles cases where space shortages cause wisdom teeth to trap or partially erupt beneath the gumline. Her structural expertise guarantees smooth surgical execution, minimal recovery periods, and exceptional patient care.",
+    image: "",
+  },
+];
 const SERVICES = [
   {
     id: 1,
@@ -80,7 +106,13 @@ export function ServiceForm() {
 }
 
 export function DentistForm() {
-  return <div>Dentist Form</div>;
+  return (
+    <div className="grid sm:grid-cols-3  gap-4 px-8">
+      {DENTISTS.map((dentist) => (
+        <DentistCard props={dentist} />
+      ))}
+    </div>
+  );
 }
 
 export function CalendarForm() {

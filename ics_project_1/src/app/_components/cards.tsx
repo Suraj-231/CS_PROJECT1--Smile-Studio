@@ -65,3 +65,42 @@ export function ServiceCard(props: ServiceCardProps) {
     </div>
   );
 }
+
+interface DentistCardProps {
+  props: {
+    name: string;
+    description?: string;
+    specialty: string;
+    id: number;
+    image?: string;
+  };
+}
+
+export function DentistCard(props: DentistCardProps) {
+  const book = useBook();
+  const { name, description, specialty, id, image } = props.props;
+  return (
+    <div
+      key={id}
+      onClick={() => book.setDentistId(id)}
+      className={`flex flex-col w-80 grid-cols-1 rounded-md ${book.dentistId === id && "border-primary border bg-primary text-white"} cursor-pointer`}
+    >
+      <Image
+        src={"/dentist1.jpg"}
+        className="w-80 object-cover rounded-t-md"
+        width={300}
+        height={300}
+        alt={name}
+      />
+      <div
+        className={`${book.dentistId === id ? "bg-primary text-white" : "bg-muted text-muted-foreground"} rounded-b-md p-4 h-52`}
+      >
+        <h1 className="text-2xl font-bold">{name}</h1>
+        <p className="text-xs mb-4">{specialty}</p>
+        <p className="text-sm text-muted-foreground">
+          {description?.slice(0, 150) + "..."}
+        </p>
+      </div>
+    </div>
+  );
+}
