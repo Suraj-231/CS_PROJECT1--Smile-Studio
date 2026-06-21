@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useBook } from "../hooks/use-book";
 import { Calendar } from "~/components/ui/calendar";
-import { ServiceCard, DentistCard } from "./cards";
+import { ServiceCard, DentistCard, DetailCard } from "./cards";
 import { Alert, AlertTitle } from "~/components/ui/alert";
-import { Ban } from "lucide-react";
+import { Ban, Clock, UserCircle2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
 import {
@@ -45,28 +45,28 @@ const SERVICES = [
     id: 1,
     title: "General Cleaning",
     description:
-      "At Smile Studio the average hygiene visit lasts about one hour, this enables our doctors check your gum health, the condition of your teeth and fillings, do a thorough cleaning and polishing and offer individualised preventive advice to help you stay healthy.",
+      "Routine clinical check-ups, digital X-rays, deep cleanings, and protective fillings to maintain optimal long-term oral hygiene.",
     completionTime: "1 hour",
   },
   {
     id: 2,
     title: "Root Canal",
     description:
-      "Teeth that require Root Canal treatment often, but not always, have symptoms. This can be any of the following: Constant throbbing or sharp pain, lingering sensitivity to hot or cold, discolouration of the tooth, swelling of the adjacent gums or tenderness of the tooth, pain on biting or chewing and a history of trauma. Sometimes there are no signs or symptoms and a diagnosis of infection is made by chance during clinical examination and/or when taking routine x-rays. ",
+      "Specialized micro-treatments to eliminate internal tooth infections, relieve persistent throbbing pain, and save the natural tooth from extraction.",
     completionTime: "1 hour 30 mins",
   },
   {
     id: 3,
-    title: "Dentures",
+    title: "Wisdom Tooth Removal",
     description:
-      "Root canal treatment is required when a tooth becomes infected, presenting symptoms like constant throbbing or sharp pain, lingering sensitivity to heat or cold, discoloration, gum swelling, and tenderness during chewing, often following a history of trauma. However, because infections can also develop asymptomatically, a diagnosis is sometimes made entirely by chance during routine clinical examinations or X-ray screenings.",
+      "Advanced surgical removal of damaged, decayed, or deeply trapped impacted wisdom teeth to prevent gum infections and protect neighboring teeth.",
     completionTime: "2 hours",
   },
   {
     id: 4,
-    title: "Wisdom Tooth Removal",
+    title: "Dentures",
     description:
-      "Due to a lack of jaw space, wisdom teeth often become trapped or impacted, leading to partial eruption. These partially erupted teeth are difficult to clean, trapping food debris and bacteria that can cause cavities, localized decay of neighboring teeth, bad breath, and painful gum infections like pericoronitis.",
+      "Premium custom-fitted full or partial dental prosthetics designed to restore natural speech, chewing function, and a complete smile after tooth loss.",
     completionTime: "2 hours 30 mins",
   },
 ];
@@ -108,6 +108,7 @@ export function ServiceForm() {
 
   return (
     <div className="px-10 grid gap-4">
+      <p className="text-muted-foreground text-center">Select a service.</p>
       <InputGroup className="px-5">
         <InputGroupAddon>
           <Search />
@@ -132,25 +133,30 @@ export function ServiceForm() {
 
 export function DentistForm() {
   return (
-    <div className="grid sm:grid-cols-3  gap-4 px-8">
-      {DENTISTS.map((dentist) => (
-        <DentistCard props={dentist} />
-      ))}
+    <div className="flex flex-col items-center gap-4">
+      <p className="text-muted-foreground text-center">
+        Select your preferred dentist.
+      </p>
+      <div className="grid sm:grid-cols-3  gap-4 ">
+        {DENTISTS.map((dentist) => (
+          <DentistCard props={dentist} />
+        ))}
+      </div>
     </div>
   );
 }
 
 export function CalendarForm() {
   const book = useBook();
-  const [date, setDate] = useState<Date | undefined>(new Date());
+
   const {
     data: bookings,
     isLoading: bookingsloading,
     isError: bookingsError,
   } = api.apps.getAll.useQuery();
   const bookingsByDentist = api.apps.getByDentistId.useQuery(
-    { id: book.dentistId },
-    { enabled: !!book.dentistId },
+    { id: book.dentist?.id },
+    { enabled: !!book.dentist?.id },
   );
   return (
     <div>
@@ -160,9 +166,9 @@ export function CalendarForm() {
       <div className="grid sm:grid-cols-2 gap-4 px-8">
         <Calendar
           mode="single"
-          defaultMonth={date}
-          selected={date}
-          onSelect={(value) => setDate(value)}
+          defaultMonth={book.date}
+          selected={book.date}
+          onSelect={(value) => book.setDate(value)}
           modifiers={{
             booked: bookings?.map((b) => new Date(b.date)),
           }}
@@ -173,10 +179,10 @@ export function CalendarForm() {
             before: new Date(),
             dayOfWeek: [0],
           }}
-          className="rounded-lg mx-auto w-3/4"
+          className="rounded-lg mx-auto "
         />
         <div className="grid grid-auto-fit items-center mt-5">
-          {date?.toLocaleDateString() == new Date().toLocaleDateString() &&
+          {book.date?.toLocaleDateString() == new Date().toLocaleDateString() &&
           (new Date().getHours() < 8 || new Date().getHours() > 17) ? (
             <Alert className="text-center text-red-500">
               <Ban />
@@ -187,7 +193,7 @@ export function CalendarForm() {
             </Alert>
           ) : null}
           <div className="grid grid-cols-3 gap-2">
-            {date?.toLocaleDateString() == new Date().toLocaleDateString()
+            {book.date?.toLocaleDateString() == new Date().toLocaleDateString()
               ? TIMES.filter(
                   (t) =>
                     !bookingsByDentist?.data?.some(
@@ -231,5 +237,49 @@ export function CalendarForm() {
 }
 
 export function ConfirmationForm() {
-  return <div>Confirmation Form</div>;
+  const book = useBook();
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-muted-foreground text-center">
+        Kindly confirm your appointment details.
+      </p>
+
+      <div className="grid grid-cols-2 gap-1">
+        {book.serviceType ? (
+          <DetailCard
+            props={{
+              icon: <UserCircle2 size={15} />,
+              title: "Service",
+              value: book.serviceType.title,
+            }}
+          />
+        ) : (
+          <div className="col-span-2">You have not selected a service.</div>
+        )}
+        {book.startTime ? (
+          <DetailCard
+            props={{
+              icon: <Clock size={15} />,
+              title: "Start time",
+              value: book.startTime,
+            }}
+          />
+        ) : (
+          <div className="col-span-2">You have not selected a start time.</div>
+        )}
+        {book.dentist ? (
+          <DetailCard
+            props={{
+              icon: <UserCircle2 size={15} />,
+              title: "Dentist",
+              value: book.dentist.name,
+            }}
+          />
+        ) : (
+          <div className="col-span-2">You have not selected a dentist.</div>
+        )}
+      </div>
+    </div>
+  );
 }

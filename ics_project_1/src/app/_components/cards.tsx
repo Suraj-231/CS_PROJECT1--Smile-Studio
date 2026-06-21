@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Button } from "~/components/ui/button";
+import { Skeleton } from "~/components/ui/skeleton";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useBook } from "../hooks/use-book";
@@ -51,9 +52,9 @@ export function ServiceCard(props: ServiceCardProps) {
   return (
     <div
       key={id}
-      onClick={() => book.setServiceType(id)}
+      onClick={() => book.setServiceType({ id, title })}
       className={`
-        ${book.serviceType === id && "border-primary border bg-primary text-white"}
+        ${book.serviceType?.id === id && "border-primary border bg-primary text-white"}
         rounded-md cursor-pointer hover:shadow-xs
         `}
     >
@@ -82,8 +83,8 @@ export function DentistCard(props: DentistCardProps) {
   return (
     <div
       key={id}
-      onClick={() => book.setDentistId(id)}
-      className={`flex flex-col w-80 grid-cols-1 rounded-md ${book.dentistId === id && "border-primary border bg-primary text-white"} cursor-pointer`}
+      onClick={() => book.setDentist({ id, name })}
+      className={`flex flex-col w-80 grid-cols-1 rounded-md ${book.dentist?.id === id && "border-primary border bg-primary text-white"} cursor-pointer`}
     >
       <Image
         src={"/dentist1.jpg"}
@@ -93,7 +94,7 @@ export function DentistCard(props: DentistCardProps) {
         alt={name}
       />
       <div
-        className={`${book.dentistId === id ? "bg-primary text-white" : "bg-muted text-muted-foreground"} rounded-b-md p-4 h-52`}
+        className={`${book.dentist?.id === id ? "bg-primary text-white" : "bg-muted text-muted-foreground"} rounded-b-md p-4 h-52`}
       >
         <h1 className="text-2xl font-bold">{name}</h1>
         <p className="text-xs mb-4">{specialty}</p>
@@ -101,6 +102,37 @@ export function DentistCard(props: DentistCardProps) {
           {description?.slice(0, 150) + "..."}
         </p>
       </div>
+    </div>
+  );
+}
+
+interface DetailCardProps {
+  props: {
+    icon: React.ReactNode;
+    title?: string;
+    value?: string;
+  };
+}
+export function DetailCard(props: DetailCardProps) {
+  const { icon, title, value } = props.props;
+  if (!title && !value) {
+    return (
+      <div className="bg-primary flex flex-col rounded-md p-4">
+        <div className="flex items-center w-full">
+          <Skeleton className="w-full rounded-full p-2" />
+          <Skeleton className="w-full rounded-full p-2" />
+        </div>
+        <Skeleton className="w-full rounded-full p-2" />
+      </div>
+    );
+  }
+  return (
+    <div className="bg-primary flex flex-col rounded-md p-4 text-white">
+      <div className="flex items-center w-full">
+        {icon}
+        <h2 className="text-xs ml-2">{title}</h2>
+      </div>
+      <p className="text-2xl ">{value}</p>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { dentistRouter } from "./routers/dentist";
  */
 export const appRouter = createTRPCRouter({
   apps: appsRouter,
-  dentist: dentistRouter,
+  dentists: dentistRouter,
 });
 
 // export type definition of API

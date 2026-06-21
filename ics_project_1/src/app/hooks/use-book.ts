@@ -1,26 +1,26 @@
 import { create } from "zustand";
 
 interface BookState {
-  dentistId: number;
-  date: string;
-  startTime: string;
-  serviceType: number;
+  dentist: { id: number; name: string } | null;
+  date: Date | undefined;
+  startTime: string | null;
+  serviceType: { id: number; title: string } | null;
 }
 
 interface BookAction {
-  setDentistId: (dentistId: number) => void;
-  setDate: (date: string) => void;
-  setStartTime: (startTime: string) => void;
-  setServiceType: (serviceType: number) => void;
+  setDentist: (dentist: { id: number; name: string } | null) => void;
+  setDate: (date: Date | undefined) => void;
+  setStartTime: (startTime: string | null) => void;
+  setServiceType: (serviceType: { id: number; title: string }) => void;
   submitBooking: (data: BookState) => void;
 }
 
 export const useBook = create<BookState & BookAction>((set) => ({
-  dentistId: 0,
-  date: "",
-  startTime: "",
-  serviceType: 0,
-  setDentistId: (dentistId) => set(() => ({ dentistId })),
+  dentist: null,
+  date: undefined,
+  startTime: null,
+  serviceType: null,
+  setDentist: (dentist) => set(() => ({ dentist })),
   setDate: (date) => set(() => ({ date })),
   setStartTime: (startTime) => set(() => ({ startTime })),
   setServiceType: (serviceType) => set(() => ({ serviceType })),

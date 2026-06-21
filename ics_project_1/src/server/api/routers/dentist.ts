@@ -61,4 +61,17 @@ export const dentistRouter = createTRPCRouter({
     const data = await ctx.db.query.dentist.findMany();
     return data ?? null;
   }),
+
+  getById: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const data = await ctx.db.query.dentist.findFirst({
+        where: eq(dentist.id, input.id),
+      });
+      return data ?? null;
+    }),
 });

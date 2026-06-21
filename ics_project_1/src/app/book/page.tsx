@@ -31,26 +31,34 @@ export default function BookPage() {
   }
 
   return (
-    <div className="flex flex-col items-center gap-8 py-4">
+    <div className="flex flex-col items-center gap-8 p-4">
       <div className="flex flex-col items-center gap-4">
         <h1 className="text-primary text-xl">Book your appointment</h1>
-
-        <div className="flex items-center gap-2">
-          {Array.from({ length: form + 1 }).map((_, i) => (
-            <div key={i} className="w-10 h-2 bg-primary rounded-full"></div>
-          ))}
-        </div>
       </div>
 
-      {renderForm()}
-      <ButtonGroup>
-        <Button onClick={() => setForm(form - 1)} disabled={form === 0}>
-          <ChevronLeft />
-        </Button>
-        <Button onClick={() => setForm(form + 1)} disabled={form === 3}>
-          <ChevronRight />
-        </Button>
-      </ButtonGroup>
+      <div className=" w-full">{renderForm()}</div>
+
+      <div className="flex justify-between w-full items-center">
+        <div className="flex items-center gap-2">
+          {Array.from({ length: form + 1 }).map((_, i) => (
+            <div key={i} className="w-4 h-2 bg-primary rounded-full"></div>
+          ))}
+        </div>
+        <ButtonGroup>
+          <Button onClick={() => setForm(form - 1)} disabled={form === 0}>
+            <ChevronLeft />
+          </Button>
+          {form === 3 ? (
+            <Button className="bg-primary" onClick={() => setForm(0)}>
+              Confirm Appointment
+            </Button>
+          ) : (
+            <Button onClick={() => setForm(form + 1)} disabled={form === 3}>
+              <ChevronRight />
+            </Button>
+          )}
+        </ButtonGroup>
+      </div>
     </div>
   );
 }
