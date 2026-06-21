@@ -1,35 +1,61 @@
-import { relations } from "drizzle-orm";
+// Example model schema from the Drizzle docs
+// https://orm.drizzle.team/docs/sql-schema-declaration
+
+import { sql } from "drizzle-orm";
+import { serial } from "drizzle-orm/mysql-core";
+//import { pgTable } from "drizzle-orm/pg-core";
 import {
-  boolean,
+  jsonb,
   index,
   pgTable,
   pgTableCreator,
-  text,
   timestamp,
+  varchar,
+  text,
+  boolean,
+  integer,
 } from "drizzle-orm/pg-core";
+import z from "zod";
+/**
+ * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
+ * database instance for multiple projects.
+ *
+ * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
+ */
+export const createTable = pgTableCreator((name) => `smilestudio_${name}`);
 
-export const createTable = pgTableCreator((name) => `pg-drizzle_${name}`);
-
-export const posts = createTable(
-  "post",
+export const appointments = createTable(
+  "appointments",
   (d) => ({
     id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
-    name: d.varchar({ length: 256 }),
-    createdById: d
-      .varchar({ length: 255 })
-      .notNull()
-      .references(() => user.id),
+    userId: d.text().notNull(),
+    dentistId: d.integer().references(() => dentist.id),
+    date: d.date().notNull(),
+    startTime: d.time().notNull(),
     createdAt: d
       .timestamp({ withTimezone: true })
-      .$defaultFn(() => new Date())
+      .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
     updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
   }),
   (t) => [
-    index("created_by_idx").on(t.createdById),
-    index("name_idx").on(t.name),
-  ]
+    index("user_id_idx").on(t.userId),
+    index("dentist_id_idx").on(t.dentistId),
+  ],
 );
+
+export const dentist = pgTable("dentists", {
+  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+  name: text("name").notNull(),
+  description: text("description"),
+  appointmentCount: integer("appointment_count").default(0).notNull(),
+  createdAt: timestamp("created_at")
+    .$defaultFn(() => /* @__PURE__ */ new Date())
+    .notNull(),
+  updatedAt: timestamp("updated_at")
+    .$defaultFn(() => /* @__PURE__ */ new Date())
+    .notNull(),
+});
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -45,6 +71,7 @@ export const user = pgTable("user", {
   updatedAt: timestamp("updated_at")
     .$defaultFn(() => /* @__PURE__ */ new Date())
     .notNull(),
+  role: text("role").default("user"),
 });
 
 export const session = pgTable("session", {
@@ -84,22 +111,9 @@ export const verification = pgTable("verification", {
   value: text("value").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").$defaultFn(
-    () => /* @__PURE__ */ new Date()
+    () => /* @__PURE__ */ new Date(),
   ),
   updatedAt: timestamp("updated_at").$defaultFn(
-    () => /* @__PURE__ */ new Date()
+    () => /* @__PURE__ */ new Date(),
   ),
 });
-
-export const userRelations = relations(user, ({ many }) => ({
-  account: many(account),
-  session: many(session),
-}));
-
-export const accountRelations = relations(account, ({ one }) => ({
-  user: one(user, { fields: [account.userId], references: [user.id] }),
-}));
-
-export const sessionRelations = relations(session, ({ one }) => ({
-  user: one(user, { fields: [session.userId], references: [user.id] }),
-}));

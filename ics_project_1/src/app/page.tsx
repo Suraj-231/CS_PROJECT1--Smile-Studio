@@ -8,5 +8,9 @@ import { getSession } from "~/server/better-auth/server";
 import { api, HydrateClient } from "~/trpc/server";
 
 export default async function Home() {
-  return <div>Welcome to Smile Studio</div>;
+  return (
+    <div>
+      <h1 className="">Welcome to Smile Studio</h1>
+    </div>
+  );
 }

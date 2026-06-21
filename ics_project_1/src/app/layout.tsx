@@ -6,7 +6,7 @@ import { Geist, Inter } from "next/font/google";
 import { TRPCReactProvider } from "~/trpc/react";
 import { cn } from "~/lib/utils";
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: "Create T3 App",
@@ -24,7 +24,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={cn(geist.variable, "font-sans", inter.variable)}>
-      <body>
+      <body className="flex flex-col min-h-screen justify-center items-center">
         <TRPCReactProvider>{children}</TRPCReactProvider>
       </body>
     </html>
