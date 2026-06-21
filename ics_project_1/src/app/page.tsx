@@ -1,16 +1,33 @@
-import { headers } from "next/headers";
+import { Button } from "~/components/ui/button";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-
-import { LatestPost } from "~/app/_components/post";
-import { auth } from "~/server/better-auth";
-import { getSession } from "~/server/better-auth/server";
-import { api, HydrateClient } from "~/trpc/server";
+import { ImageCard } from "./_components/cards";
 
 export default async function Home() {
   return (
     <div>
-      <h1 className="">Welcome to Smile Studio</h1>
+      <div className="flex gap-8">
+        <ImageCard
+          props={{
+            src: "appointment.jpg",
+            href: "/book",
+            alt: "Smile Studio appointment.",
+            title: "Book An Appointment",
+            description:
+              "Secure your time slot in less than a minute. Choose your dental care provider, view live real-time availability, and get an instant calendar confirmation sent directly to your inbox.",
+          }}
+        />
+
+        <ImageCard
+          props={{
+            src: "profile-2.jpg",
+            href: "/profile",
+            alt: "Smile Studio profile.",
+            title: "Profile",
+            description:
+              "View and update your personal information, track your upcoming appointments, and access your historical treatment logs all from a single, secure student dashboard.",
+          }}
+        />
+      </div>
     </div>
   );
 }

@@ -24,7 +24,7 @@ import z from "zod";
  */
 export const createTable = pgTableCreator((name) => `smilestudio_${name}`);
 
-export const appointments = createTable(
+export const appointments = pgTable(
   "appointments",
   (d) => ({
     id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
