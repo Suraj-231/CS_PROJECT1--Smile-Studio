@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import { useBook } from "../hooks/use-book";
+import { Calendar } from "~/components/ui/calendar";
 import { ServiceCard, DentistCard } from "./cards";
+import { Alert, AlertTitle } from "~/components/ui/alert";
+import { Ban } from "lucide-react";
+import { Button } from "~/components/ui/button";
+import { api } from "~/trpc/react";
 import {
   InputGroup,
   InputGroupAddon,
@@ -65,6 +70,26 @@ const SERVICES = [
     completionTime: "2 hours 30 mins",
   },
 ];
+const TIMES = [
+  { value: "08:30:00", label: "08:30 AM" },
+  { value: "09:00:00", label: "09:00 AM" },
+  { value: "09:30:00", label: "09:30 AM" },
+  { value: "10:00:00", label: "10:00 AM" },
+  { value: "10:30:00", label: "10:30 AM" },
+  { value: "11:00:00", label: "11:00 AM" },
+  { value: "11:30:00", label: "11:30 AM" },
+  { value: "12:00:00", label: "12:00 PM" },
+  { value: "12:30:00", label: "12:30 PM" },
+  { value: "13:00:00", label: "01:00 PM" },
+  { value: "13:30:00", label: "01:30 PM" },
+  { value: "14:00:00", label: "02:00 PM" },
+  { value: "14:30:00", label: "02:30 PM" },
+  { value: "15:00:00", label: "03:00 PM" },
+  { value: "15:30:00", label: "03:30 PM" },
+  { value: "16:00:00", label: "04:00 PM" },
+  { value: "16:30:00", label: "04:30 PM" },
+  { value: "17:00:00", label: "05:00 PM" },
+];
 
 export function ServiceForm() {
   const [query, setQuery] = useState("");
@@ -116,7 +141,93 @@ export function DentistForm() {
 }
 
 export function CalendarForm() {
-  return <div>Calendar Form</div>;
+  const book = useBook();
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const {
+    data: bookings,
+    isLoading: bookingsloading,
+    isError: bookingsError,
+  } = api.apps.getAll.useQuery();
+  const bookingsByDentist = api.apps.getByDentistId.useQuery(
+    { id: book.dentistId },
+    { enabled: !!book.dentistId },
+  );
+  return (
+    <div>
+      <p className="text-muted-foreground text-center">
+        Select a date and time.
+      </p>
+      <div className="grid sm:grid-cols-2 gap-4 px-8">
+        <Calendar
+          mode="single"
+          defaultMonth={date}
+          selected={date}
+          onSelect={(value) => setDate(value)}
+          modifiers={{
+            booked: bookings?.map((b) => new Date(b.date)),
+          }}
+          modifiersClassNames={{
+            booked: "bg-gray-50 text-gray-300 rounded-md",
+          }}
+          disabled={{
+            before: new Date(),
+            dayOfWeek: [0],
+          }}
+          className="rounded-lg mx-auto w-3/4"
+        />
+        <div className="grid grid-auto-fit items-center mt-5">
+          {date?.toLocaleDateString() == new Date().toLocaleDateString() &&
+          (new Date().getHours() < 8 || new Date().getHours() > 17) ? (
+            <Alert className="text-center text-red-500">
+              <Ban />
+              <AlertTitle>
+                You cannot book an appointment for today as our working hours
+                are from 8:30 AM to 5:00 PM.
+              </AlertTitle>
+            </Alert>
+          ) : null}
+          <div className="grid grid-cols-3 gap-2">
+            {date?.toLocaleDateString() == new Date().toLocaleDateString()
+              ? TIMES.filter(
+                  (t) =>
+                    !bookingsByDentist?.data?.some(
+                      (b) => b.startTime === t.value,
+                    ),
+                )
+                  .filter(
+                    (t) =>
+                      parseInt(t.value.substring(0, 2)) > new Date().getHours(),
+                  )
+                  .map((t, i) => (
+                    <Button
+                      onClick={() => book.setStartTime(t.value)}
+                      key={i}
+                      variant="outline"
+                      className={`${book.startTime === t.value ? "bg-primary text-white" : "bg-white"} mr-2 cursor-pointer shadow-none hover:border-primary hover:bg-primary hover:text-white mb-2`}
+                    >
+                      {t.label}
+                    </Button>
+                  ))
+              : TIMES.filter(
+                  (t) =>
+                    !bookingsByDentist?.data?.some(
+                      (b) => b.startTime === t.value,
+                    ),
+                ).map((t, i) => (
+                  <Button
+                    onClick={() => book.setStartTime(t.value)}
+                    key={i}
+                    variant="outline"
+                    className={`${book.startTime === t.value ? "bg-primary text-white" : "bg-white"} mr-2 cursor-pointer shadow-none hover:border-primary hover:bg-primary hover:text-white mb-2`}
+                  >
+                    {t.label}
+                  </Button>
+                ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function ConfirmationForm() {
