@@ -5,12 +5,28 @@ import {
   InputGroupInput,
   InputGroup,
 } from "~/components/ui/input-group";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableFooter,
+} from "~/components/ui/table";
 import { useState } from "react";
 import { authClient } from "~/server/better-auth/client";
 
+interface UserType {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
 export default function CalendarPage() {
   const [search, setSearch] = useState("");
-  const [users, setUsers] = useState<[] | null>(null);
+  const [users, setUsers] = useState<UserType[] | null>(null);
   const [totalUsers, setTotalUsers] = useState(0);
 
   async function searchUsers() {
@@ -59,7 +75,34 @@ export default function CalendarPage() {
         </InputGroup>
       </div>
 
-      <div></div>
+      <div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users ? (
+              users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>{user.name}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.role}</TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell className="text-center text-muted-foreground w-full">
+                  No users found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

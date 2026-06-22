@@ -11,7 +11,7 @@ export function Sidebar() {
   const pathname = usePathname();
   return (
     <div
-      className={`flex gap-4 py-10 h-screen bg-muted w-20 flex-col transition-all duration-300 items-center ${open ? "w-72" : ""}`}
+      className={`flex gap-4 py-10 h-screen self-stretch bg-muted w-20 flex-col transition-all duration-300 items-center ${open ? "w-72" : ""}`}
     >
       <Button
         className="mb-20"

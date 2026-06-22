@@ -126,6 +126,19 @@ export const appsRouter = createTRPCRouter({
       return data ?? null;
     }),
 
+  getByDate: publicProcedure
+    .input(
+      z.object({
+        date: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const data = await ctx.db.query.appointments.findMany({
+        where: (appointments, { eq }) => eq(appointments.date, input.date),
+      });
+      return data ?? null;
+    }),
+
   getDates: publicProcedure.query(async ({ ctx }) => {
     const dates = await ctx.db.query.appointments.findMany({
       with: {

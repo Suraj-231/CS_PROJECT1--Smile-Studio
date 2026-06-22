@@ -6,9 +6,9 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center">
+    <div className="flex items-center min-h-screen">
       <Sidebar />
-      <div className="flex w-full  flex-col min-h-screen items p-8">
+      <div className="flex w-full flex-col min-h-screen items p-8">
         {children}
       </div>
     </div>
