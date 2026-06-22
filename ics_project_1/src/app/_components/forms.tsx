@@ -3,9 +3,19 @@ import { useBook } from "../hooks/use-book";
 import { Calendar } from "~/components/ui/calendar";
 import { ServiceCard, DentistCard, DetailCard } from "./cards";
 import { Alert, AlertTitle } from "~/components/ui/alert";
-import { Ban, Clock, UserCircle2 } from "lucide-react";
+import { Ban, Clock, UserCircle2, CirclePlus } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
+import { authClient } from "~/server/better-auth/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+  DialogHeader,
+  DialogDescription,
+} from "~/components/ui/dialog";
+
 import {
   InputGroup,
   InputGroupAddon,
@@ -282,5 +292,84 @@ export function ConfirmationForm() {
         )}
       </div>
     </div>
+  );
+}
+
+export function AddUserForm() {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "", // required
+    password: "", // required
+    name: "", // required
+    role: "user",
+  });
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    const { data: newUser, error } =
+      await authClient.admin.createUser(formData);
+    if (error) {
+      console.error(error.message);
+    } else {
+      console.log(`User ${newUser.user.name} has been added.`);
+    }
+    setLoading(false);
+  }
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="ghost" className="bg-muted text-muted-foreground">
+          <CirclePlus />
+          Add User
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add User</DialogTitle>
+          <DialogDescription>
+            Fill out the form below to add a new user.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3 px-4 py-1">
+          <div>
+            <span>Email</span>
+            <Input
+              type="email"
+              value={formData.email}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
+            />
+          </div>
+          <div>
+            <span>Name</span>
+            <Input
+              type="text"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+            />
+          </div>
+
+          <div>
+            <span>Password</span>
+            <Input
+              type="password"
+              value={formData.password}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
+            />
+          </div>
+
+          <Button disabled={loading} type="submit">
+            {loading ? "Submitting..." : "Submit"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

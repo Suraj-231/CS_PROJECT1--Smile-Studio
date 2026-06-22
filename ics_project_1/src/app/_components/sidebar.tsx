@@ -5,8 +5,9 @@ import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { usePathname } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
-
+import { authClient } from "~/server/better-auth/client";
 export function Sidebar() {
+  const { data: session } = authClient.useSession();
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   return (
@@ -47,8 +48,15 @@ export function Sidebar() {
 
         <Button variant="ghost">
           <Avatar>
-            <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-            <AvatarFallback>CN</AvatarFallback>
+            {session?.user?.image && (
+              <AvatarImage
+                src={session?.user?.image}
+                alt={session?.user?.name ?? ""}
+              />
+            )}
+            <AvatarFallback>
+              {session?.user?.name?.charAt(0).toUpperCase()}
+            </AvatarFallback>
           </Avatar>
         </Button>
       </div>

@@ -1,6 +1,8 @@
 "use client";
 import { Search } from "lucide-react";
 import { api } from "~/trpc/react";
+import { AddUserForm } from "~/app/_components/forms";
+
 import {
   InputGroupAddon,
   InputGroupInput,
@@ -47,19 +49,23 @@ export default function CalendarPage() {
           <p className="text-muted-foreground">View and manage all patients.</p>
         </div>
 
-        <InputGroup className="w-80">
-          <InputGroupAddon>
-            <Search />
-          </InputGroupAddon>
-          <InputGroupInput
-            placeholder="Search for a user..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <InputGroupAddon>
-            <span>{totalUsers > 0 && `${totalUsers} patients`}</span>
-          </InputGroupAddon>
-        </InputGroup>
+        <div className="flex gap-2">
+          <InputGroup className="w-80">
+            <InputGroupAddon>
+              <Search />
+            </InputGroupAddon>
+            <InputGroupInput
+              placeholder="Search for a user..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <InputGroupAddon>
+              <span>{totalUsers > 0 && `${totalUsers} patients`}</span>
+            </InputGroupAddon>
+          </InputGroup>
+
+          <AddUserForm />
+        </div>
       </div>
 
       <div>
