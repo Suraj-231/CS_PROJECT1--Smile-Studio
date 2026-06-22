@@ -1,5 +1,6 @@
 "use client";
 import { Search } from "lucide-react";
+import { api } from "~/trpc/react";
 import {
   InputGroupAddon,
   InputGroupInput,
@@ -14,8 +15,11 @@ import {
   TableRow,
   TableFooter,
 } from "~/components/ui/table";
+import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
+
 import { useState, useEffect } from "react";
 import { authClient } from "~/server/better-auth/client";
+import { useDebounce } from "use-debounce";
 
 interface UserType {
   id: string;
@@ -25,37 +29,15 @@ interface UserType {
 }
 
 export default function CalendarPage() {
+  const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
-  const [users, setUsers] = useState<UserType[] | null>(null);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [debouncedSearch] = useDebounce(search, 1000);
 
-  const pageSize = 10;
-  const currentPage = 2;
-
-  useEffect(() => {
-    async function searchUsers() {
-      const { data: users, error } = await authClient.admin.listUsers({
-        query: {
-          searchValue: search,
-          searchField: "email",
-          searchOperator: "contains",
-          limit: pageSize,
-          offset: (currentPage - 1) * pageSize,
-          sortBy: "name",
-          sortDirection: "desc",
-          // filterField: "email",
-          // filterValue: "hello@example.com",
-        },
-      });
-      if (users) {
-        console.log(users);
-        setUsers(users.users);
-        setTotalUsers(users.total);
-      }
-      if (error) console.error(error);
-    }
-    if (search.length > 3) searchUsers();
-  }, [search]);
+  const { data: users } = api.users.getWithSearch.useQuery({
+    query: debouncedSearch,
+    limit: pageSize,
+  });
 
   return (
     <div>
@@ -93,7 +75,18 @@ export default function CalendarPage() {
             {users ? (
               users.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell>{user.name}</TableCell>
+                  <TableCell className="flex items-center gap-2">
+                    <Avatar>
+                      <AvatarImage
+                        src={user.image ?? undefined}
+                        alt={user.name}
+                      />
+                      <AvatarFallback>
+                        {user.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    {user.name}
+                  </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{user.role}</TableCell>
                 </TableRow>

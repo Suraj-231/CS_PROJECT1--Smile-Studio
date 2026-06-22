@@ -36,7 +36,9 @@ const GRADIENTS = [
 ];
 
 export default function ProfilePage() {
-  const [gradient, setGradient] = useState(GRADIENTS[1]);
+  const [gradient, setGradient] = useState(
+    GRADIENTS[Math.floor(Math.random() * GRADIENTS.length)],
+  );
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
   const {

@@ -1,5 +1,5 @@
 "use client";
-import { BookCheck, DoorOpen, UserCircle2 } from "lucide-react";
+import { BookCheck, DoorOpen, Shield, UserCircle2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
@@ -13,6 +13,13 @@ export function Header() {
       <h1 className="text-xl text-muted-foreground">Welcome to Smile Studio</h1>
 
       <div className="flex gap-4">
+        {session.data?.user.role === "admin" && (
+          <Link href="/admin">
+            <Button>
+              Admin <Shield />
+            </Button>
+          </Link>
+        )}
         <Link href="/book">
           <Button>
             Book <BookCheck />
