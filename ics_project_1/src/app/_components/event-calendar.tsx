@@ -1,7 +1,17 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  EllipsisVertical,
+  PenLineIcon,
+  Trash,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+
 import { useState } from "react";
 import { ButtonGroup } from "~/components/ui/button-group";
 import { Button } from "~/components/ui/button";
+import Link from "next/link";
+
 import {
   DialogContent,
   DialogHeader,
@@ -9,6 +19,17 @@ import {
   DialogTrigger,
   Dialog,
 } from "~/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
+
+import { AvatarFallback, Avatar, AvatarImage } from "~/components/ui/avatar";
 
 const SERVICES = [
   {
@@ -280,11 +301,6 @@ export function EventCalendar() {
     }
   }
 
-  console.log(
-    TEST_APPS.filter(
-      (app) => app.date === `${selectedYear}-0${selectedMonth + 1}-29`,
-    ),
-  );
   return (
     <div className="flex flex-col items-center h-full">
       <div className="w-full">
@@ -352,21 +368,21 @@ export function EventCalendar() {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Appointments on {day}</DialogTitle>
+                <DialogTitle>
+                  Appointments on {selectedYear}-
+                  {selectedMonth > 9
+                    ? selectedMonth + 1
+                    : `0${selectedMonth + 1}`}
+                  -{day}
+                </DialogTitle>
               </DialogHeader>
-              <div>
+              <div className="grid">
                 {TEST_APPS.filter(
                   (app) =>
-                    app.date === `${selectedYear}-0${selectedMonth + 1}-${day}`,
+                    app.date ===
+                    `${selectedYear}-${selectedMonth > 9 ? selectedMonth + 1 : `0${selectedMonth + 1}`}-${day}`,
                 ).map((app) => (
-                  <Event
-                    key={app.id}
-                    props={{
-                      title: SERVICES[app.service]?.title ?? "",
-                      date: app.date,
-                      startTime: app.startTime,
-                    }}
-                  />
+                  <Event key={app.id} props={app} />
                 ))}
               </div>
             </DialogContent>
@@ -379,16 +395,51 @@ export function EventCalendar() {
 
 interface EventProps {
   props: {
-    title: string;
+    id: number;
+    service: number;
     date: string;
     startTime: string;
   };
 }
-export function Event(props: EventProps) {
-  const { title, date, startTime } = props.props;
+export function Event(event: EventProps) {
+  const { id, service, date, startTime } = event.props;
+  const router = useRouter();
   return (
-    <div className="text-white cursor-pointer hover:shadow-xs transition-all duration-300 p-1 rounded-md text-xs bg-primary">
-      <p>{new Date(startTime).toLocaleTimeString().slice(0, 5)}</p>
+    <div className="cursor-pointer py-2 px-2 justify-between rounded-md hover:bg-muted flex items-center transition-all duration-300 p-1 text-xs">
+      <Avatar>
+        <AvatarFallback>
+          <p>M</p>
+        </AvatarFallback>
+      </Avatar>
+      <p className="text-muted-foreground">
+        {SERVICES[service]?.title} -{" "}
+        {new Date(startTime).toLocaleTimeString().slice(0, 5)}
+      </p>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            className="text-muted-foreground hover:text-primary"
+          >
+            <EllipsisVertical />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>Edit Appointment</DropdownMenuLabel>
+            <DropdownMenuItem
+              onClick={() => router.push(`admin/appointments/${id}`)}
+            >
+              <PenLineIcon className="mr-2" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive hover:text-destructive/80 ">
+              <Trash className="mr-2" />
+              Remove
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

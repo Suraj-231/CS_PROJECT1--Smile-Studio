@@ -126,6 +126,23 @@ export const appsRouter = createTRPCRouter({
       return data ?? null;
     }),
 
+  editAppointment: adminProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        service: z.number().optional(),
+        date: z.string().optional(),
+        startTime: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id, service, date, startTime } = input;
+      await ctx.db
+        .update(appointments)
+        .set({ service, date, startTime })
+        .where(eq(appointments.id, id));
+    }),
+
   getByDate: publicProcedure
     .input(
       z.object({
