@@ -5,14 +5,18 @@ import { Button } from "~/components/ui/button";
 import Link from "next/link";
 import { authClient } from "~/server/better-auth/client";
 import { SiGoogle } from "@icons-pack/react-simple-icons";
+import { useRouter } from "next/navigation";
 
 export default function AuthPage() {
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
+  const [form, setForm] = useState<"signUp" | "signIn">("signUp");
+  function renderForm() {
+    switch (form) {
+      case "signUp":
+        return <SignUpForm />;
+      case "signIn":
+        return <SignInForm />;
+    }
+  }
 
   async function handleGoogleSignIn() {
     try {
@@ -25,6 +29,49 @@ export default function AuthPage() {
     }
   }
 
+  return (
+    <div className="flex flex-col px-4 gap-4 items-center justify-center min-h-screen">
+      {renderForm()}
+      <div>
+        {form === "signUp" ? (
+          <p>
+            Already have an account?{" "}
+            <span
+              onClick={() => setForm("signIn")}
+              className="text-primary cursor-pointer underline"
+            >
+              Sign in
+            </span>
+          </p>
+        ) : (
+          <p>
+            Already have an account?{" "}
+            <span
+              onClick={() => setForm("signUp")}
+              className="text-primary cursor-pointer underline"
+            >
+              Sign in
+            </span>
+          </p>
+        )}
+      </div>
+      <p>Or</p>
+      <Button onClick={handleGoogleSignIn} variant="outline">
+        <SiGoogle />
+        Continue with Google
+      </Button>
+    </div>
+  );
+}
+
+export function SignUpForm() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
   async function handleSignUp() {
     setLoading(true);
     if (!formData.email || !formData.password || !formData.name) {
@@ -37,16 +84,17 @@ export default function AuthPage() {
         name: formData.name,
         email: formData.email,
         password: formData.password,
+        role: "user",
       });
+      router.push("/profile");
     } catch (error) {
       console.log("Error signing up");
     } finally {
       setLoading(false);
     }
   }
-
   return (
-    <div className="flex flex-col px-4 gap-4 items-center justify-center min-h-screen">
+    <div className="flex flex-col gap-4 w-80 justify-self-center">
       <div className="text-center mb-4">
         <h1 className="text-xl ">Create an Account</h1>
         <p className="text-muted-foreground">
@@ -82,22 +130,67 @@ export default function AuthPage() {
             }
           />
         </div>
-        <div>
-          <p className="text-center">
-            Already have an account?{" "}
-            <Link className="text-primary underline" href="/login">
-              Sign in here
-            </Link>
-          </p>
-        </div>
+
         <Button onClick={handleSignUp} disabled={loading}>
           {loading ? "Loading..." : "Submit"}
         </Button>
       </div>
-      <p>Or</p>
-      <Button onClick={handleGoogleSignIn} variant="outline">
-        <SiGoogle />
-        Sign in with Google
+    </div>
+  );
+}
+
+export function SignInForm() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
+  async function handleSignIn() {
+    setLoading(true);
+    try {
+      await authClient.signIn.email({
+        email: formData.email,
+        password: formData.password,
+      });
+      router.push("/profile");
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4 w-80 justify-self-center">
+      <div className="text-center mb-4">
+        <h1 className="text-xl ">Sign In</h1>
+        <p className="text-muted-foreground">
+          Welcome back! Please sign in to continue.
+        </p>
+      </div>
+      <div>
+        <span>Email</span>
+        <Input
+          type="email"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+        />
+      </div>
+      <div>
+        <span>Password</span>
+        <Input
+          type="password"
+          value={formData.password}
+          onChange={(e) =>
+            setFormData({ ...formData, password: e.target.value })
+          }
+        />
+      </div>
+
+      <Button onClick={handleSignIn} disabled={loading}>
+        {loading ? "Loading..." : "Submit"}
       </Button>
     </div>
   );

@@ -24,7 +24,7 @@ export const useBook = create<BookState & BookAction>((set) => ({
   setDate: (date) => set(() => ({ date })),
   setStartTime: (startTime) => set(() => ({ startTime })),
   setServiceType: (serviceType) => set(() => ({ serviceType })),
-  submitBooking: (data: BookState) => {
+  submitBooking: (data) => {
     console.log("Booking submitted:", data);
   },
 }));

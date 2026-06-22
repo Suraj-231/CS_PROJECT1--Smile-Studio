@@ -52,29 +52,6 @@ export const appsRouter = createTRPCRouter({
       }
     }),
 
-  edit: publicProcedure
-    .input(
-      z.object({
-        id: z.number(),
-        newDate: z.date(),
-        newStartTime: z.string(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      try {
-        await ctx.db
-          .update(appointments)
-          .set({
-            date: input.newDate.toDateString(),
-            startTime: input.newStartTime,
-          })
-          .where(eq(appointments.id, input.id));
-      } catch (error) {
-        console.error("Error updating appointment time:", error);
-        throw new Error("Failed to update appointment time");
-      }
-    }),
-
   getAll: publicProcedure.query(async ({ ctx }) => {
     const data = await ctx.db.query.appointments.findMany({
       orderBy: (appointments, { asc }) => [asc(appointments.date)],
@@ -89,6 +66,11 @@ export const appsRouter = createTRPCRouter({
     });
 
     return data ?? null;
+  }),
+
+  getAppointmentCount: adminProcedure.query(async ({ ctx }) => {
+    const data = await ctx.db.query.appointments.findMany();
+    return data.length ?? null;
   }),
 
   getTimes: publicProcedure.query(async ({ ctx }) => {
@@ -122,6 +104,19 @@ export const appsRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const data = await ctx.db.query.appointments.findMany({
         where: (appointments, { eq }) => eq(appointments.dentistId, input.id),
+      });
+      return data ?? null;
+    }),
+
+  getForUser: publicProcedure
+    .input(
+      z.object({
+        userId: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const data = await ctx.db.query.appointments.findMany({
+        where: (appointments, { eq }) => eq(appointments.userId, input.userId),
       });
       return data ?? null;
     }),

@@ -1,71 +1,5 @@
-// Example model schema from the Drizzle docs
-// https://orm.drizzle.team/docs/sql-schema-declaration
-
-import { sql } from "drizzle-orm";
-import { serial } from "drizzle-orm/mysql-core";
-//import { pgTable } from "drizzle-orm/pg-core";
-import {
-  jsonb,
-  index,
-  pgTable,
-  pgTableCreator,
-  timestamp,
-  varchar,
-  text,
-  boolean,
-  integer,
-} from "drizzle-orm/pg-core";
-import { ensureSuspenseTimers } from "node_modules/@tanstack/react-query/build/modern/_tsup-dts-rollup";
-import z from "zod";
-/**
- * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
- * database instance for multiple projects.
- *
- * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
- */
-export const createTable = pgTableCreator((name) => `smilestudio_${name}`);
-
-export const appointments = pgTable(
-  "appointments",
-  (d) => ({
-    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
-    userId: d.text().notNull(),
-    dentistId: d.integer().references(() => dentist.id),
-    service: d.integer().references(() => service.id),
-    date: d.date().notNull(),
-    startTime: d.time().notNull(),
-    createdAt: d
-      .timestamp({ withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`)
-      .notNull(),
-    updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
-  }),
-  (t) => [
-    index("user_id_idx").on(t.userId),
-    index("dentist_id_idx").on(t.dentistId),
-    index("service_id_idx").on(t.service),
-  ],
-);
-
-export const service = pgTable("services", {
-  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
-  name: text("name").notNull(),
-  estimatedTime: text("estimated_time"),
-  description: text("description"),
-});
-
-export const dentist = pgTable("dentists", {
-  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
-  name: text("name").notNull(),
-  description: text("description"),
-  appointmentCount: integer("appointment_count").default(0).notNull(),
-  createdAt: timestamp("created_at")
-    .$defaultFn(() => /* @__PURE__ */ new Date())
-    .notNull(),
-  updatedAt: timestamp("updated_at")
-    .$defaultFn(() => /* @__PURE__ */ new Date())
-    .notNull(),
-});
+import { relations } from "drizzle-orm";
+import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -143,3 +77,22 @@ export const verification = pgTable(
   },
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
+
+export const userRelations = relations(user, ({ many }) => ({
+  sessions: many(session),
+  accounts: many(account),
+}));
+
+export const sessionRelations = relations(session, ({ one }) => ({
+  user: one(user, {
+    fields: [session.userId],
+    references: [user.id],
+  }),
+}));
+
+export const accountRelations = relations(account, ({ one }) => ({
+  user: one(user, {
+    fields: [account.userId],
+    references: [user.id],
+  }),
+}));

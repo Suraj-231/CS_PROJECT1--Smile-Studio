@@ -124,7 +124,7 @@ export function ServiceForm() {
 
       <div className="grid sm:grid-cols-3 px-4 gap-4">
         {filteredServices.map((service) => (
-          <ServiceCard props={service} />
+          <ServiceCard key={service.id} props={service} />
         ))}
       </div>
     </div>
@@ -137,9 +137,9 @@ export function DentistForm() {
       <p className="text-muted-foreground text-center">
         Select your preferred dentist.
       </p>
-      <div className="grid sm:grid-cols-3  gap-4 ">
+      <div className="flex gap-20">
         {DENTISTS.map((dentist) => (
-          <DentistCard props={dentist} />
+          <DentistCard key={dentist.id} props={dentist} />
         ))}
       </div>
     </div>
@@ -182,7 +182,8 @@ export function CalendarForm() {
           className="rounded-lg mx-auto "
         />
         <div className="grid grid-auto-fit items-center mt-5">
-          {book.date?.toLocaleDateString() == new Date().toLocaleDateString() &&
+          {book.date?.toLocaleDateString() ===
+            new Date().toLocaleDateString() &&
           (new Date().getHours() < 8 || new Date().getHours() > 17) ? (
             <Alert className="text-center text-red-500">
               <Ban />
@@ -193,7 +194,7 @@ export function CalendarForm() {
             </Alert>
           ) : null}
           <div className="grid grid-cols-3 gap-2">
-            {book.date?.toLocaleDateString() == new Date().toLocaleDateString()
+            {book.date?.toLocaleDateString() === new Date().toLocaleDateString()
               ? TIMES.filter(
                   (t) =>
                     !bookingsByDentist?.data?.some(

@@ -14,14 +14,14 @@ import {
   TableRow,
   TableFooter,
 } from "~/components/ui/table";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { authClient } from "~/server/better-auth/client";
 
 interface UserType {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role?: string | undefined;
 }
 
 export default function CalendarPage() {
@@ -29,27 +29,34 @@ export default function CalendarPage() {
   const [users, setUsers] = useState<UserType[] | null>(null);
   const [totalUsers, setTotalUsers] = useState(0);
 
-  async function searchUsers() {
-    const { data: users, error } = await authClient.admin.listUsers({
-      query: {
-        searchValue: search,
-        searchField: "name",
-        searchOperator: "contains",
-        limit: 10,
-        offset: 10,
-        sortBy: "name",
-        sortDirection: "desc",
-        // filterField: "email",
-        // filterValue: "hello@example.com",
-        filterOperator: "eq",
-      },
-    });
-    if (users) {
-      console.log(users);
-      setTotalUsers(users.total);
+  const pageSize = 10;
+  const currentPage = 2;
+
+  useEffect(() => {
+    async function searchUsers() {
+      const { data: users, error } = await authClient.admin.listUsers({
+        query: {
+          searchValue: search,
+          searchField: "email",
+          searchOperator: "contains",
+          limit: pageSize,
+          offset: (currentPage - 1) * pageSize,
+          sortBy: "name",
+          sortDirection: "desc",
+          // filterField: "email",
+          // filterValue: "hello@example.com",
+        },
+      });
+      if (users) {
+        console.log(users);
+        setUsers(users.users);
+        setTotalUsers(users.total);
+      }
+      if (error) console.error(error);
     }
-    if (error) console.error(error);
-  }
+    if (search.length > 3) searchUsers();
+  }, [search]);
+
   return (
     <div>
       <div className="flex justify-between items-center">
@@ -66,8 +73,6 @@ export default function CalendarPage() {
             placeholder="Search for a user..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && searchUsers()}
-            onBlur={searchUsers}
           />
           <InputGroupAddon>
             <span>{totalUsers > 0 && `${totalUsers} patients`}</span>

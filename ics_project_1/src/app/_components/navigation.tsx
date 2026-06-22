@@ -1,5 +1,5 @@
 "use client";
-import { BookCheck, DoorOpen } from "lucide-react";
+import { BookCheck, DoorOpen, UserCircle2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
@@ -10,7 +10,7 @@ export function Header() {
   const session = authClient.useSession();
   return (
     <div className="flex py-3 items-center justify-between px-8 border-b w-full">
-      <h1 className="text-2xl">Welcome to Smile Studio</h1>
+      <h1 className="text-xl text-muted-foreground">Welcome to Smile Studio</h1>
 
       <div className="flex gap-4">
         <Link href="/book">
@@ -19,12 +19,21 @@ export function Header() {
           </Button>
         </Link>
         <ButtonGroup>
-          <Link href="/auth">
-            <Button>
-              {session.data ? `Welcome, ${session.data.user.name}` : "Sign In"}
-              <DoorOpen />
-            </Button>
-          </Link>
+          {session.data ? (
+            <Link href="/profile">
+              <Button>
+                Welcome, {session.data.user.name}
+                <UserCircle2 />
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/auth">
+              <Button>
+                Sign In
+                <DoorOpen />
+              </Button>
+            </Link>
+          )}
         </ButtonGroup>
       </div>
     </div>

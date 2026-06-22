@@ -60,8 +60,12 @@ export function ServiceCard(props: ServiceCardProps) {
     >
       <div className="p-4  rounded-b-md">
         <h2 className="text-xl font-bold">{title}</h2>
-        <p className="text-sm text-muted-foreground">{completionTime}</p>
-        <p className="text-sm text-muted-foreground">{description}</p>
+        <p className={"text-sm "}>{completionTime}</p>
+        <p
+          className={`text-sm ${book.serviceType?.id === id ? "text-white" : "text-muted-foreground"}`}
+        >
+          {description}
+        </p>
       </div>
     </div>
   );
