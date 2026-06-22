@@ -1,10 +1,14 @@
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import {
+  adminProcedure,
+  createTRPCRouter,
+  publicProcedure,
+} from "~/server/api/trpc";
 import { dentist } from "~/server/db/schema";
 
 export const dentistRouter = createTRPCRouter({
-  create: publicProcedure
+  create: adminProcedure
     .input(
       z.object({
         name: z.string().min(1),
@@ -17,7 +21,7 @@ export const dentistRouter = createTRPCRouter({
       });
     }),
 
-  remove: publicProcedure
+  remove: adminProcedure
     .input(
       z.object({
         id: z.number(),

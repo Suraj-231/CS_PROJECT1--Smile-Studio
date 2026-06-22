@@ -9,7 +9,7 @@ import { authClient } from "~/server/better-auth/client";
 export function Header() {
   const session = authClient.useSession();
   return (
-    <div className="flex mb-8 py-8 items-center justify-between px-8 border-b w-full">
+    <div className="flex py-3 items-center justify-between px-8 border-b w-full">
       <h1 className="text-2xl">Welcome to Smile Studio</h1>
 
       <div className="flex gap-4">
@@ -19,10 +19,12 @@ export function Header() {
           </Button>
         </Link>
         <ButtonGroup>
-          <Button>
-            {session.data ? `Welcome, ${session.data.user.name}` : "Sign In"}
-            <DoorOpen />
-          </Button>
+          <Link href="/auth">
+            <Button>
+              {session.data ? `Welcome, ${session.data.user.name}` : "Sign In"}
+              <DoorOpen />
+            </Button>
+          </Link>
         </ButtonGroup>
       </div>
     </div>

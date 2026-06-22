@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { eq, sql } from "drizzle-orm";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import {
+  adminProcedure,
+  createTRPCRouter,
+  publicProcedure,
+} from "~/server/api/trpc";
 import { appointments, dentist } from "~/server/db/schema";
 
 export const appsRouter = createTRPCRouter({
@@ -74,6 +78,14 @@ export const appsRouter = createTRPCRouter({
   getAll: publicProcedure.query(async ({ ctx }) => {
     const data = await ctx.db.query.appointments.findMany({
       orderBy: (appointments, { asc }) => [asc(appointments.date)],
+    });
+
+    return data ?? null;
+  }),
+
+  getLatest: adminProcedure.query(async ({ ctx }) => {
+    const data = await ctx.db.query.appointments.findFirst({
+      orderBy: (appointments, { desc }) => [desc(appointments.date)],
     });
 
     return data ?? null;

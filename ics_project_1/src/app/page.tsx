@@ -5,7 +5,7 @@ import { ImageCard } from "./_components/cards";
 export default async function Home() {
   return (
     <div>
-      <div className="flex gap-8">
+      <div className="flex gap-8 min-h-screen items-center justify-center">
         <ImageCard
           props={{
             src: "appointment.jpg",

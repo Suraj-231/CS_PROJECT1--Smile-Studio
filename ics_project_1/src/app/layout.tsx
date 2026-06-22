@@ -24,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${dmSans.className} `}>
       <Header />
-      <body className="flex flex-col  justify-center items-center">
+      <body className="">
         <TRPCReactProvider>{children}</TRPCReactProvider>
       </body>
     </html>

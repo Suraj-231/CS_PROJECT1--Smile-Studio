@@ -10,6 +10,8 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
+import { eq } from "drizzle-orm";
+import { user } from "~/server/db/schema";
 
 import { auth } from "~/server/better-auth";
 import { db } from "~/server/db";
@@ -128,6 +130,23 @@ export const protectedProcedure = t.procedure
     return next({
       ctx: {
         // infers the `session` as non-nullable
+        session: { ...ctx.session, user: ctx.session.user },
+      },
+    });
+  });
+
+export const adminProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(({ ctx, next }) => {
+    if (!ctx.session?.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+    if (ctx.session.user.role !== "admin") {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+
+    return next({
+      ctx: {
         session: { ...ctx.session, user: ctx.session.user },
       },
     });
