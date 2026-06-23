@@ -12,18 +12,36 @@ export const appsRouter = createTRPCRouter({
     .input(
       z.object({
         dentistId: z.number().min(1),
-        date: z.string(),
+        date: z.string().optional(),
         startTime: z.string().min(1),
+        serviceType: z.number().min(1),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       if (ctx.session?.user.id) {
+        if (!input.date || !input.startTime) {
+          throw new Error("Date and start time are required");
+        }
         //console.log("User ID:", ctx.session.user.id)
+        // First check if appointment already exists
+        const existingAppointment = await ctx.db.query.appointments.findFirst({
+          where: (appointments, { and, eq }) =>
+            and(
+              eq(appointments.date, input.date as string),
+              eq(appointments.startTime, input.startTime as string),
+            ),
+        });
+
+        if (existingAppointment) {
+          throw new Error("Appointment already exists");
+        }
+
         await ctx.db.insert(appointments).values({
-          userId: ctx.session.user.name,
+          userId: ctx.session.user.id as string,
           dentistId: input.dentistId,
-          date: input.date,
+          date: input.date as string,
           startTime: input.startTime,
+          service: input.serviceType,
         });
 
         await ctx.db
@@ -111,10 +129,11 @@ export const appsRouter = createTRPCRouter({
   getForUser: publicProcedure
     .input(
       z.object({
-        userId: z.string(),
+        userId: z.string().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
+      if (!input.userId) return [];
       const data = await ctx.db.query.appointments.findMany({
         where: (appointments, { eq }) => eq(appointments.userId, input.userId),
       });

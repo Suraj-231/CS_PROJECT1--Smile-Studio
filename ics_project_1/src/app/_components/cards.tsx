@@ -39,28 +39,28 @@ export function ImageCard(props: ImageCardProps) {
 
 interface ServiceCardProps {
   props: {
-    title: string;
+    name: string;
     description: string;
     id: number;
-    completionTime: string;
+    estimatedTime: string;
   };
 }
 
 export function ServiceCard(props: ServiceCardProps) {
   const book = useBook();
-  const { title, description, id, completionTime } = props.props;
+  const { name, description, id, estimatedTime } = props.props;
   return (
     <div
       key={id}
-      onClick={() => book.setServiceType({ id, title })}
+      onClick={() => book.setServiceType({ id, name })}
       className={`
         ${book.serviceType?.id === id && "border-primary border bg-primary text-white"}
         rounded-md cursor-pointer hover:shadow-xs
         `}
     >
       <div className="p-4  rounded-b-md">
-        <h2 className="text-xl font-bold">{title}</h2>
-        <p className={"text-sm "}>{completionTime}</p>
+        <h2 className="text-xl font-bold">{name}</h2>
+        <p className={"text-sm "}>Estimated Time: {estimatedTime}</p>
         <p
           className={`text-sm ${book.serviceType?.id === id ? "text-white" : "text-muted-foreground"}`}
         >
@@ -71,11 +71,21 @@ export function ServiceCard(props: ServiceCardProps) {
   );
 }
 
+export function ServiceCardReadOnly(service: ServiceCardProps) {
+  const { name, description, estimatedTime } = service.props;
+  return (
+    <div className="p-4 rounded-md bg-muted">
+      <h2 className="text-xl text-primary">{name}</h2>
+      <p className={"text-xs text-muted-foreground"}>{estimatedTime}</p>
+      <p className={"text-sm text-muted-foreground"}>{description}</p>
+    </div>
+  );
+}
+
 interface DentistCardProps {
   props: {
     name: string;
-    description?: string;
-    specialty: string;
+    description: string | null;
     id: number;
     image?: string;
   };
@@ -83,7 +93,7 @@ interface DentistCardProps {
 
 export function DentistCard(props: DentistCardProps) {
   const book = useBook();
-  const { name, description, specialty, id, image } = props.props;
+  const { name, description, id, image } = props.props;
   return (
     <div
       key={id}
@@ -101,7 +111,7 @@ export function DentistCard(props: DentistCardProps) {
         className={`${book.dentist?.id === id ? "bg-primary text-white" : "bg-muted text-muted-foreground"} rounded-b-md p-4 h-52`}
       >
         <h1 className="text-2xl font-bold">{name}</h1>
-        <p className="text-xs mb-4">{specialty}</p>
+        <p className="text-xs mb-4">{description ?? ""}</p>
         <p className="text-sm text-muted-foreground">
           {description?.slice(0, 150) + "..."}
         </p>

@@ -28,7 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-
+import { api } from "~/trpc/react";
 import { AvatarFallback, Avatar, AvatarImage } from "~/components/ui/avatar";
 
 const SERVICES = [
@@ -282,7 +282,7 @@ export function EventCalendar() {
   const today = new Date();
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-
+  const { data: apps, isLoading: appsLoading } = api.apps.getAll.useQuery();
   function handleDecrementMonth() {
     if (selectedMonth === 0) {
       setSelectedMonth(11);
@@ -345,18 +345,21 @@ export function EventCalendar() {
           (_, i) => i + 1,
         ).map((day) => (
           <Dialog key={day}>
-            <DialogTrigger className="w-full h-24 bg-muted text-xs rounded-sm overflow-hidden flex flex-col">
+            <DialogTrigger
+              className={`w-full h-24 ${day === today.getDate() && selectedMonth === today.getMonth() ? "bg-primary/50" : "bg-muted"} text-xs rounded-sm overflow-hidden flex flex-col`}
+            >
               <div className="w-full text-muted-foreground bg-muted flex justify-between p-1 items-center">
                 <div />
                 {day}
               </div>
               <div className="grid grid-cols-3 p-1 gap-1">
-                {TEST_APPS.filter(
-                  (app) =>
-                    app.date === `${selectedYear}-0${selectedMonth + 1}-${day}`,
-                )
-
-                  .map((app) => (
+                {apps
+                  ?.filter(
+                    (app) =>
+                      app.date ===
+                      `${selectedYear}-0${selectedMonth + 1}-${day}`,
+                  )
+                  ?.map((app) => (
                     <p
                       className="bg-primary p-1 text-xs text-white rounded-lg"
                       key={app.id}

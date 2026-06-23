@@ -1,5 +1,11 @@
 "use client";
-import { Calendar1, ChartColumn, PanelLeft, Users2Icon } from "lucide-react";
+import {
+  Calendar1,
+  ChartColumn,
+  PanelLeft,
+  Users2Icon,
+  Wrench,
+} from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
@@ -10,6 +16,7 @@ export function Sidebar() {
   const { data: session } = authClient.useSession();
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  
   return (
     <div
       className={`flex gap-4 py-10 h-screen self-stretch bg-muted w-20 flex-col transition-all duration-300 items-center ${open ? "w-72" : ""}`}
@@ -35,6 +42,14 @@ export function Sidebar() {
           >
             <Calendar1 />
             {open && <span>Calendar</span>}
+          </Button>
+        </Link>
+        <Link href="/admin/services">
+          <Button
+            variant={pathname === "/admin/services" ? "default" : "ghost"}
+          >
+            <Wrench />
+            {open && <span>Services</span>}
           </Button>
         </Link>
         <Link href="/admin/patients" className="mb-20">

@@ -29,10 +29,10 @@ export const appointments = pgTable(
   "appointments",
   (d) => ({
     id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
-    userId: d.text().notNull(),
+    userId: d.text().references(() => user.id),
     dentistId: d.integer().references(() => dentist.id),
     service: d.integer().references(() => service.id),
-    date: d.date().notNull(),
+    date: d.text().notNull(),
     startTime: d.time().notNull(),
     createdAt: d
       .timestamp({ withTimezone: true })
@@ -57,6 +57,7 @@ export const service = pgTable("services", {
 export const dentist = pgTable("dentists", {
   id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
   name: text("name").notNull(),
+  imageUrl: text("image_url"),
   description: text("description"),
   appointmentCount: integer("appointment_count").default(0).notNull(),
   createdAt: timestamp("created_at")

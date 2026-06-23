@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
-import Link from "next/link";
 import { authClient } from "~/server/better-auth/client";
 import { SiGoogle } from "@icons-pack/react-simple-icons";
 import { useRouter } from "next/navigation";

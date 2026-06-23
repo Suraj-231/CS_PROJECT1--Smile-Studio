@@ -12,12 +12,15 @@ export const dentistRouter = createTRPCRouter({
     .input(
       z.object({
         name: z.string().min(1),
+        imageUrl: z.string().optional(),
         description: z.string().min(1).max(500).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       await ctx.db.insert(dentist).values({
         name: input.name,
+        imageUrl: input.imageUrl,
+        description: input.description,
       });
     }),
 
@@ -77,5 +80,25 @@ export const dentistRouter = createTRPCRouter({
         where: eq(dentist.id, input.id),
       });
       return data ?? null;
+    }),
+
+  edit: adminProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        name: z.string().min(1).max(50).optional(),
+        imageUrl: z.string().min(1).max(500).optional(),
+        description: z.string().min(1).max(500).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db
+        .update(dentist)
+        .set({
+          name: input.name,
+          imageUrl: input.imageUrl,
+          description: input.description,
+        })
+        .where(eq(dentist.id, input.id));
     }),
 });

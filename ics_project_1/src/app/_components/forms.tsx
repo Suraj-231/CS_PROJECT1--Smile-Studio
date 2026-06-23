@@ -6,7 +6,18 @@ import { Alert, AlertTitle } from "~/components/ui/alert";
 import { Ban, Clock, UserCircle2, CirclePlus } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
+import { Skeleton } from "~/components/ui/skeleton";
+import { toast } from "sonner";
 import { authClient } from "~/server/better-auth/client";
+import {
+  Select,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "~/components/ui/select";
+import { UploadButton, UploadDropzone } from "~/utils/uploadthing";
+
 import {
   Dialog,
   DialogContent,
@@ -101,20 +112,28 @@ const TIMES = [
   { value: "17:00:00", label: "05:00 PM" },
 ];
 
+interface ServiceType {
+  id: number;
+  name: string;
+  description: string | null;
+  estimatedTime: string;
+}
 export function ServiceForm() {
   const [query, setQuery] = useState("");
-  const [filteredServices, setFilteredServices] = useState(SERVICES);
-  const book = useBook();
+  const [filteredServices, setFilteredServices] = useState<ServiceType[]>([]);
+  const { data: services } = api.services.getAll.useQuery();
   useEffect(() => {
-    if (query) {
-      const filteredServices = SERVICES.filter((service) =>
-        service.title.toLowerCase().includes(query.toLowerCase()),
+    if (query && services) {
+      const filteredServices = services.filter((service) =>
+        service.name.toLowerCase().includes(query.toLowerCase()),
       );
       setFilteredServices(filteredServices);
+    } else if (services) {
+      setFilteredServices(services);
     } else {
-      setFilteredServices(SERVICES);
+      setFilteredServices([]);
     }
-  }, [query]);
+  }, [query, services]);
 
   return (
     <div className="px-10 grid gap-4">
@@ -132,7 +151,7 @@ export function ServiceForm() {
         </InputGroupAddon>
       </InputGroup>
 
-      <div className="grid sm:grid-cols-3 px-4 gap-4">
+      <div className="flex flex-col px-4 gap-4">
         {filteredServices.map((service) => (
           <ServiceCard key={service.id} props={service} />
         ))}
@@ -142,15 +161,20 @@ export function ServiceForm() {
 }
 
 export function DentistForm() {
+  const { data: dentists, isLoading } = api.dentists.getAll.useQuery();
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-muted-foreground text-center">
         Select your preferred dentist.
       </p>
       <div className="flex gap-20">
-        {DENTISTS.map((dentist) => (
-          <DentistCard key={dentist.id} props={dentist} />
-        ))}
+        {isLoading
+          ? Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="p-8 rounded-lg" />
+            ))
+          : dentists?.map((dentist) => (
+              <DentistCard key={dentist.id} props={dentist} />
+            ))}
       </div>
     </div>
   );
@@ -256,13 +280,13 @@ export function ConfirmationForm() {
         Kindly confirm your appointment details.
       </p>
 
-      <div className="grid grid-cols-2 gap-1">
+      <div className="grid grid-cols-2 gap-1 text-center">
         {book.serviceType ? (
           <DetailCard
             props={{
               icon: <UserCircle2 size={15} />,
               title: "Service",
-              value: book.serviceType.title,
+              value: book.serviceType.name,
             }}
           />
         ) : (
@@ -301,7 +325,6 @@ export function AddUserForm() {
     email: "", // required
     password: "", // required
     name: "", // required
-    role: "user",
   });
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -311,8 +334,12 @@ export function AddUserForm() {
       await authClient.admin.createUser(formData);
     if (error) {
       console.error(error.message);
+      toast.error(error.message);
+      setLoading(false);
+      return;
     } else {
       console.log(`User ${newUser.user.name} has been added.`);
+      toast.success(`User ${newUser.user.name} has been added.`);
     }
     setLoading(false);
   }
@@ -367,6 +394,212 @@ export function AddUserForm() {
 
           <Button disabled={loading} type="submit">
             {loading ? "Submitting..." : "Submit"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface DentistForm {
+  name: string;
+  imageUrl: string | undefined;
+  description: string;
+}
+
+export function AddDentistForm() {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState<DentistForm>({
+    name: "",
+    imageUrl: undefined,
+    description: "",
+  });
+
+  const createDentist = api.dentists.create.useMutation({
+    onSuccess: () => {
+      toast.success("Dentist added successfully");
+      setFormData({ name: "", imageUrl: undefined, description: "" });
+    },
+    onError: () => {
+      toast.error("Failed to add dentist");
+    },
+    onMutate: () => {
+      setLoading(true);
+    },
+    onSettled: () => {
+      setLoading(false);
+    },
+  });
+
+  function handleAddDentist(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!formData.name || !formData.imageUrl || !formData.description) {
+      toast.error("Please fill out all fields");
+      return;
+    }
+    createDentist.mutateAsync(formData);
+  }
+
+  return (
+    <Dialog>
+      <DialogTrigger>
+        <Button variant="ghost" className="bg-muted text-muted-foreground">
+          <CirclePlus /> Add Dentist
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add a Doctor</DialogTitle>
+          <DialogDescription>
+            Fill out the form below to add a new Doctor.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleAddDentist} className="flex flex-col gap-4">
+          <div>
+            <span>Upload Image</span>
+            <UploadButton
+              endpoint="imageUploader"
+              appearance={{
+                button:
+                  "ut-ready:bg-green-500 ut-uploading:cursor-not-allowed px-4 bg-muted-foreground bg-none after:bg-primary",
+                container: "w-full flex rounded-md border-cyan-300 ",
+                allowedContent:
+                  "flex h-8 flex-col items-center justify-center px-2 text-primary",
+              }}
+              onClientUploadComplete={(res) => {
+                // Do something with the response
+                //console.log("Files: ", res);
+                setFormData({ ...formData, imageUrl: res[0]?.url });
+                // alert("Upload Completed");
+              }}
+              onUploadError={(error: Error) => {
+                // Do something with the error.
+                toast.error(error.message);
+              }}
+            />
+          </div>
+          <div>
+            <span>Name</span>
+            <Input
+              type="text"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+            />
+          </div>
+          <div>
+            <span>Description</span>
+            <Input
+              type="text"
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+            />
+          </div>
+          <Button type="submit" disabled={loading}>
+            {loading ? "Adding..." : "Add Dentist"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function AddServiceForm() {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    estimatedTime: "",
+  });
+  const createService = api.services.create.useMutation({
+    onSuccess: () => {
+      toast.success("Service added successfully");
+      setFormData({ name: "", description: "", estimatedTime: "" });
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error("Failed to add service");
+    },
+  });
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await createService.mutateAsync(formData);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }
+  return (
+    <Dialog>
+      <DialogTrigger>
+        <Button variant="ghost" className="text-muted-foreground bg-muted">
+          <CirclePlus />
+          Add a Service
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add a Service</DialogTitle>
+          <DialogDescription>
+            Fill out the form below to add a new Service for patients.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div>
+            <span>Name</span>
+            <Input
+              type="text"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+            />
+          </div>
+          <div>
+            <span>Estimated Time</span>
+            <Select
+              value={formData.estimatedTime}
+              onValueChange={(value) =>
+                setFormData({ ...formData, estimatedTime: value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue
+                  className="w-full"
+                  placeholder="Select an estimated time"
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="15m">15m</SelectItem>
+                <SelectItem value="30m">30m</SelectItem>
+                <SelectItem value="1 hour">1 hour</SelectItem>
+                <SelectItem value="2 hours">2 hours</SelectItem>
+                <SelectItem value="2 hours 30min">2 hours 30min</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <span>Description</span>
+            <textarea
+              rows={4}
+              className="w-full bg-muted rounded-lg p-1"
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+            />
+          </div>
+
+          <Button type="submit" disabled={loading}>
+            {loading ? "Adding..." : "Add Service"}
           </Button>
         </form>
       </DialogContent>

@@ -8,6 +8,27 @@
       "when": 1782138943894,
       "tag": "0000_dusty_stepford_cuckoos",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782146083551,
+      "tag": "0001_heavy_satana",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782154093886,
+      "tag": "0002_tranquil_pride",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1782156575471,
+      "tag": "0003_wealthy_revanche",
+      "breakpoints": true
     }
   ]
 }

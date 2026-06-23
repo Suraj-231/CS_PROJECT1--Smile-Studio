@@ -1,7 +1,8 @@
 "use client";
 
 import { Button } from "~/components/ui/button";
-
+import { toast } from "sonner";
+import { api } from "~/trpc/react";
 import { useState } from "react";
 import {
   ServiceForm,
@@ -17,19 +18,28 @@ export default function BookPage() {
   const [loading, setLoading] = useState(false);
   const book = useBook();
   const [form, setForm] = useState(0);
+  const createAppointment = api.apps.create.useMutation({
+    onSuccess: () => {
+      toast.success("Booking confirmed successfully!");
+    },
+    onError: () => {
+      toast.error("Failed to confirm booking. Please try again.");
+    },
+  });
 
   async function confirmAppointment() {
-    setLoading(true);
-    try {
-      book.submitBooking({
-        dentist: book.dentist,
-        date: book.date,
-        startTime: book.startTime,
-        serviceType: book.serviceType,
-      });
-    } catch (error) {
-      console.log(error);
+    if (!book.dentist || !book.date || !book.startTime || !book.serviceType) {
+      toast.error("Please fill out all fields before confirming.");
+      return;
     }
+    setLoading(true);
+    await createAppointment.mutateAsync({
+      dentistId: book.dentist.id,
+      date: book.date.toISOString(),
+      startTime: book.startTime,
+      serviceType: book.serviceType.id,
+    });
+    setLoading(false);
   }
 
   function renderForm() {

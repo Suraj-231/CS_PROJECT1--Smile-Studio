@@ -3,8 +3,22 @@
  * for Docker builds.
  */
 import "./src/env.js";
-
+import { withUt } from "uploadthing/tw";
 /** @type {import("next").NextConfig} */
-const config = {};
+const config = {
+  images: {
+    remotePatterns: [
+      {
+        hostname: "utfs.io",
+      },
+      {
+        hostname: "1uay6ee9me.ufs.sh",
+      },
+      {
+        hostname: "lh3.googleusercontent.com",
+      },
+    ],
+  },
+};
 
 export default config;

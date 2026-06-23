@@ -47,7 +47,6 @@ export default function ProfilePage() {
     isError: appsError,
   } = api.apps.getForUser.useQuery({
     userId: session?.user.id,
-    enabled: !!session?.user.id,
   });
 
   if (isPending) {
@@ -127,15 +126,15 @@ export default function ProfilePage() {
         </div>
 
         <div className="border overflow-y-auto p-2 rounded-lg w-80 h-96">
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center text-muted-foreground">
             <Book size={16} />
             Appointment History
           </div>
 
           <div className="flex flex-col  gap-2">
             {appsLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="w-full p-2 mb-2" />
+              Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="w-full p-8 mb-2" />
               ))
             ) : apps.length > 0 ? (
               apps.map((app, i) => (
