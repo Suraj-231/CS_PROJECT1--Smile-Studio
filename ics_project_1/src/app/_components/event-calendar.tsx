@@ -4,10 +4,11 @@ import {
   EllipsisVertical,
   PenLineIcon,
   Trash,
+  UserCircle2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-
-import { useState } from "react";
+import { toast } from "sonner";
+import { useState, useEffect } from "react";
 import { ButtonGroup } from "~/components/ui/button-group";
 import { Button } from "~/components/ui/button";
 import Link from "next/link";
@@ -282,7 +283,25 @@ export function EventCalendar() {
   const today = new Date();
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const { data: apps, isLoading: appsLoading } = api.apps.getAll.useQuery();
+  const {
+    data: apps,
+    isLoading: appsLoading,
+    isError,
+    error,
+  } = api.apps.getAllByMonthAndYear.useQuery({
+    month: selectedMonth,
+    year: selectedYear,
+  });
+
+  useEffect(() => {
+    if (isError && error) {
+      toast.error("Failed to fetch appointments", {
+        description: "Check your internet connection and try again.",
+      });
+    }
+    console.log("This is not working");
+  }, [isError, error]);
+
   function handleDecrementMonth() {
     if (selectedMonth === 0) {
       setSelectedMonth(11);
@@ -302,7 +321,7 @@ export function EventCalendar() {
   }
 
   return (
-    <div className="flex flex-col items-center h-full">
+    <div className="flex flex-col items-center ">
       <div className="w-full">
         <ButtonGroup className={`items-center mb-4 justify-self-center`}>
           <Button
@@ -339,14 +358,14 @@ export function EventCalendar() {
           </Button>
         </ButtonGroup>
       </div>
-      <div className="w-full rounded-md grid grid-cols-7 grid-rows-5 gap-1">
+      <div className="w-full rounded-md grid sm:grid-cols-7 grid-cols-3 grid-rows-5 gap-1 overflow-auto">
         {Array.from(
           { length: new Date(selectedYear, selectedMonth + 1, 0).getDate() },
           (_, i) => i + 1,
         ).map((day) => (
           <Dialog key={day}>
             <DialogTrigger
-              className={`w-full h-24 ${day === today.getDate() && selectedMonth === today.getMonth() ? "bg-primary/50" : "bg-muted"} text-xs rounded-sm overflow-hidden flex flex-col`}
+              className={`w-full h-24 ${day === today.getDate() && selectedMonth === today.getMonth() ? "bg-muted-foreground" : "bg-muted"} text-xs rounded-sm overflow-hidden flex flex-col`}
             >
               <div className="w-full text-muted-foreground bg-muted flex justify-between p-1 items-center">
                 <div />
@@ -359,10 +378,10 @@ export function EventCalendar() {
                       app.date ===
                       `${selectedYear}-0${selectedMonth + 1}-${day}`,
                   )
-                  ?.map((app) => (
+                  ?.map((app, id) => (
                     <p
                       className="bg-primary p-1 text-xs text-white rounded-lg"
-                      key={app.id}
+                      key={id}
                     >
                       {new Date(app.startTime).toLocaleTimeString().slice(0, 5)}
                     </p>
@@ -380,13 +399,23 @@ export function EventCalendar() {
                 </DialogTitle>
               </DialogHeader>
               <div className="grid">
-                {TEST_APPS.filter(
-                  (app) =>
-                    app.date ===
-                    `${selectedYear}-${selectedMonth > 9 ? selectedMonth + 1 : `0${selectedMonth + 1}`}-${day}`,
-                ).map((app) => (
-                  <Event key={app.id} props={app} />
-                ))}
+                {apps
+                  ?.filter(
+                    (app) =>
+                      app.date ===
+                      `${selectedYear}-${selectedMonth > 9 ? selectedMonth + 1 : `0${selectedMonth + 1}`}-${day}`,
+                  )
+                  .map((app, id) => (
+                    <Event
+                      key={id}
+                      props={{
+                        user: app.user,
+                        service: app.service,
+                        date: app.date,
+                        startTime: app.startTime,
+                      }}
+                    />
+                  ))}
               </div>
             </DialogContent>
           </Dialog>
@@ -398,25 +427,36 @@ export function EventCalendar() {
 
 interface EventProps {
   props: {
-    id: number;
-    service: number;
+    user: {
+      id: string;
+      name: string;
+      image?: string | null;
+    };
+    service: {
+      id: number;
+      name: string;
+    };
     date: string;
     startTime: string;
   };
 }
 export function Event(event: EventProps) {
-  const { id, service, date, startTime } = event.props;
+  const { user, service, date, startTime } = event.props;
   const router = useRouter();
   return (
     <div className="cursor-pointer py-2 px-2 justify-between rounded-md hover:bg-muted flex items-center transition-all duration-300 p-1 text-xs">
-      <Avatar>
-        <AvatarFallback>
-          <p>M</p>
-        </AvatarFallback>
-      </Avatar>
+      <div>
+        <Avatar>
+          {user.image && <AvatarImage src={user.image} alt={user.name} />}
+          <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+        </Avatar>
+        <div>
+          <p className="">{user.name}</p>
+          <p className="text-muted-foreground text-xs">{user.email}</p>
+        </div>
+      </div>
       <p className="text-muted-foreground">
-        {SERVICES[service]?.title} -{" "}
-        {new Date(startTime).toLocaleTimeString().slice(0, 5)}
+        {service.name} - {new Date(startTime).toLocaleTimeString().slice(0, 5)}
       </p>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, ilike } from "drizzle-orm";
 import {
   adminProcedure,
   createTRPCRouter,
   publicProcedure,
 } from "~/server/api/trpc";
-import { appointments, dentist } from "~/server/db/schema";
+import { appointments, dentist, user, service } from "~/server/db/schema";
 
 export const appsRouter = createTRPCRouter({
   create: publicProcedure
@@ -123,6 +123,44 @@ export const appsRouter = createTRPCRouter({
       const data = await ctx.db.query.appointments.findMany({
         where: (appointments, { eq }) => eq(appointments.dentistId, input.id),
       });
+      return data ?? null;
+    }),
+
+  getAllByMonthAndYear: adminProcedure
+    .input(
+      z.object({
+        month: z.number(),
+        year: z.number(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { month, year } = input;
+      const data = await ctx.db
+        .select({
+          appointmentId: appointments.id,
+          date: appointments.date,
+          startTime: appointments.startTime,
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.image,
+          },
+          dentist: {
+            id: dentist.id,
+            name: dentist.name,
+            description: dentist.description,
+          },
+          service: {
+            id: service.id,
+            name: service.name,
+            description: service.description,
+          },
+        })
+        .from(appointments)
+        .innerJoin(user, eq(appointments.userId, user.id))
+        .innerJoin(dentist, eq(appointments.dentistId, dentist.id))
+        .innerJoin(service, eq(appointments.service, service.id));
       return data ?? null;
     }),
 

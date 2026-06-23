@@ -157,8 +157,8 @@ export default function CalendarPage() {
         </Table>
       </div>
 
-      <div className="flex flex-col md:flex-row md:justify-between items-start md:items-center mt-20 gap-4">
-        <div>
+      <div className="flex flex-col  md:flex-row md:justify-between items-start md:items-center mt-20 gap-4">
+        <div className="mb-1">
           <h1>Dentists</h1>
           <p className="text-muted-foreground">View and manage all dentists.</p>
         </div>

@@ -6,7 +6,7 @@ import { api } from "~/trpc/react";
 export default function ServicesPage() {
   const { data: services, isLoading: loading } = api.services.getAll.useQuery();
   return (
-    <div className="flex flex-col   gap-4">
+    <div className="flex flex-col min-h-screen  gap-4">
       <div className="flex justify-between items-center">
         <div>
           <h1>Services</h1>
