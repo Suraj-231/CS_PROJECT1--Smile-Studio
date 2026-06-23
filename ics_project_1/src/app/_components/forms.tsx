@@ -414,6 +414,8 @@ export function AddDentistForm() {
     imageUrl: undefined,
     description: "",
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined);
 
   const createDentist = api.dentists.create.useMutation({
     onSuccess: () => {
@@ -431,13 +433,64 @@ export function AddDentistForm() {
     },
   });
 
-  function handleAddDentist(e: React.FormEvent<HTMLFormElement>) {
+  async function handleAddDentist(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!formData.name || !formData.imageUrl || !formData.description) {
-      toast.error("Please fill out all fields");
-      return;
+    setLoading(true);
+    try {
+      // upload the selected file first (if present) and set imageUrl
+      if (selectedFile && !formData.imageUrl) {
+        try {
+          const uploadedUrl = await uploadFileToUploadThing(selectedFile);
+          if (uploadedUrl) {
+            setFormData((prev) => ({ ...prev, imageUrl: uploadedUrl }));
+          }
+        } catch (err: any) {
+          console.error("Upload failed", err);
+          toast.error("Image upload failed");
+          setLoading(false);
+          return;
+        }
+      }
+
+      if (!formData.name || !formData.imageUrl || !formData.description) {
+        toast.error("Please fill out all fields");
+        setLoading(false);
+        return;
+      }
+
+      await createDentist.mutateAsync(formData);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
-    createDentist.mutateAsync(formData);
+  }
+
+  async function uploadFileToUploadThing(file: File): Promise<string | null> {
+    // Sends the file to the UploadThing route. The exact response shape depends on your UploadThing setup.
+    const fd = new FormData();
+    fd.append("file", file);
+
+    const res = await fetch("/api/uploadthing", {
+      method: "POST",
+      body: fd,
+    });
+
+    if (!res.ok) {
+      throw new Error("Upload failed");
+    }
+
+    const data = await res.json();
+    // Try a few common response shapes to extract the uploaded file URL
+    // Adjust this to match your UploadThing response (e.g. data[0].url, data.files[0].url, etc.)
+    const url =
+      data?.[0]?.url ||
+      data?.files?.[0]?.url ||
+      data?.fileUrl ||
+      data?.url ||
+      null;
+
+    return url;
   }
 
   return (
@@ -457,26 +510,28 @@ export function AddDentistForm() {
         <form onSubmit={handleAddDentist} className="flex flex-col gap-4">
           <div>
             <span>Upload Image</span>
-            <UploadButton
-              endpoint="imageUploader"
-              appearance={{
-                button:
-                  "ut-ready:bg-green-500 ut-uploading:cursor-not-allowed px-4 bg-muted-foreground bg-none after:bg-primary",
-                container: "w-full flex rounded-md border-cyan-300 ",
-                allowedContent:
-                  "flex h-8 flex-col items-center justify-center px-2 text-primary",
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setSelectedFile(file);
+                  setPreviewUrl(URL.createObjectURL(file));
+                } else {
+                  setSelectedFile(null);
+                  setPreviewUrl(undefined);
+                }
               }}
-              onClientUploadComplete={(res) => {
-                // Do something with the response
-                //console.log("Files: ", res);
-                setFormData({ ...formData, imageUrl: res[0]?.url });
-                // alert("Upload Completed");
-              }}
-              onUploadError={(error: Error) => {
-                // Do something with the error.
-                toast.error(error.message);
-              }}
+              className="block w-full"
             />
+            {previewUrl && (
+              <img
+                src={previewUrl}
+                alt="preview"
+                className="mt-2 w-24 h-24 object-cover rounded-md"
+              />
+            )}
           </div>
           <div>
             <span>Name</span>

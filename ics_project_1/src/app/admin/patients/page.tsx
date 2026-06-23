@@ -3,6 +3,7 @@ import { EllipsisVertical, Search } from "lucide-react";
 import { api } from "~/trpc/react";
 import { AddDentistForm, AddUserForm } from "~/app/_components/forms";
 import { Button } from "~/components/ui/button";
+import { Skeleton } from "~/components/ui/skeleton";
 
 import {
   DropdownMenu,
@@ -45,24 +46,25 @@ export default function CalendarPage() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [debouncedSearch] = useDebounce(search, 1000);
 
-  const { data: users } = api.users.getWithSearch.useQuery({
-    query: debouncedSearch,
-    limit: pageSize,
-  });
+  const { data: users, isLoading: usersLoading } =
+    api.users.getWithSearch.useQuery({
+      query: debouncedSearch,
+      limit: pageSize,
+    });
 
   const { data: dentists, isLoading: loadingDentists } =
     api.dentists.getAll.useQuery();
 
   return (
     <div>
-      <div className="flex justify-between  items-center">
+      <div className="flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4">
         <div>
           <h1>Patients</h1>
           <p className="text-muted-foreground">View and manage all patients.</p>
         </div>
 
-        <div className="flex gap-2">
-          <InputGroup className="w-80">
+        <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto items-start md:items-center">
+          <InputGroup className="w-full md:w-80">
             <InputGroupAddon>
               <Search />
             </InputGroupAddon>
@@ -80,63 +82,82 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead className="text-right">Settings</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users ? (
-            users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className="flex items-center gap-2">
-                  <Avatar>
-                    <AvatarImage
-                      src={user.image ?? undefined}
-                      alt={user.name}
-                    />
-                    <AvatarFallback>
-                      {user.name.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  {user.name}
-                </TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>{user.role}</TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger>
-                      <Button
-                        onClick={() => setSelectedUser(user.id)}
-                        variant="ghost"
-                        className="w-full"
-                      >
-                        <EllipsisVertical />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem>Remove User</DropdownMenuItem>
-                      <DropdownMenuItem>Edit User</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+      <div className="overflow-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead className="text-right">Settings</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {usersLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <TableRow>
+                  <TableCell>
+                    <Skeleton className="p-5 rounded-lg" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="p-5 rounded-lg" />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Skeleton className="p-5 rounded-lg" />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Skeleton className="p-5 rounded-lg" />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : users ? (
+              users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="flex items-center gap-2">
+                    <Avatar>
+                      <AvatarImage
+                        src={user.image ?? undefined}
+                        alt={user.name}
+                      />
+                      <AvatarFallback>
+                        {user.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    {user.name}
+                  </TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.role}</TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger>
+                        <Button
+                          onClick={() => setSelectedUser(user.id)}
+                          variant="ghost"
+                          className="w-full"
+                        >
+                          <EllipsisVertical />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem>Remove User</DropdownMenuItem>
+                        <DropdownMenuItem>Edit User</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell className="text-center text-muted-foreground w-full">
+                  No users found.
                 </TableCell>
               </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell className="text-center text-muted-foreground w-full">
-                No users found.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
-      <div className="flex mt-20 justify-between items-center">
+      <div className="flex flex-col md:flex-row md:justify-between items-start md:items-center mt-20 gap-4">
         <div>
           <h1>Dentists</h1>
           <p className="text-muted-foreground">View and manage all dentists.</p>
@@ -144,9 +165,11 @@ export default function CalendarPage() {
 
         <AddDentistForm />
       </div>
-      <div>
+      <div className="overflow-auto">
         {loadingDentists ? (
-          <p>Loading...</p>
+          Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="p-8 rounded-lg w-full mb-1" />
+          ))
         ) : dentists ? (
           <Table>
             <TableHeader>
