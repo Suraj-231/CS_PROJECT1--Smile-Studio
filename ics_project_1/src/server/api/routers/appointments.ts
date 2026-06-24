@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, sql, ilike } from "drizzle-orm";
+import { eq, sql, ilike, and, gte } from "drizzle-orm";
 import {
   adminProcedure,
   createTRPCRouter,
@@ -113,10 +113,94 @@ export const appsRouter = createTRPCRouter({
       return data ?? null;
     }),
 
+  getFollowUp: publicProcedure
+    .input(
+      z.object({
+        serviceId: z.number(),
+        priority: z.number(),
+        dentistId: z.number(),
+        prevDate: z.string(),
+        prevTime: z.string(),
+      }),
+    )
+    .query(async ({ input, ctx }) => {
+      const { dentistId, prevDate, prevTime, priority } = input;
+
+      // 1. Calculate a base date to start searching from
+      const baseDate = new Date(prevDate);
+      if (isNaN(baseDate.getTime())) {
+        throw new Error("Invalid prevDate format.");
+      }
+
+      // Determine starting gap based on urgency priority
+      // High priority (>3): Look as early as 3 days from the previous visit
+      // Normal priority (<=3): Standard 14 days (2 weeks) routine follow-up window
+      const daysToWait = priority > 3 ? 3 : 14;
+      baseDate.setDate(baseDate.getDate() + daysToWait);
+
+      // 2. Fetch all upcoming appointments for this dentist to detect slot conflicts
+      // Grabbing anything from the base start date onwards
+      const formattedStartDateString = baseDate.toISOString().split("T")[0];
+
+      const busyAppointments = await ctx.db
+        .select({
+          date: appointments.date,
+          startTime: appointments.startTime,
+        })
+        .from(appointments)
+        .where(
+          and(
+            eq(appointments.dentistId, dentistId),
+            gte(appointments.date, baseDate),
+          ),
+        );
+
+      // Create a Set of "YYYY-MM-DD" strings representing days where the requested time slot is blocked
+      const blockedDates = new Set<string>();
+      busyAppointments.forEach((app) => {
+        // Normalizing times to compare cleanly (e.g., matching "09:00:00" or "09:00")
+        const appTimeClean = app.startTime.substring(0, 5);
+        const inputTimeClean = prevTime.substring(0, 5);
+
+        if (appTimeClean === inputTimeClean) {
+          blockedDates.add(app.date.toISOString());
+        }
+      });
+
+      // 3. Scan forward Day-by-Day to discover 3 vacant slot openings
+      const suggestedDates: string[] = [];
+      const searchCursor = new Date(baseDate);
+
+      // Limit search matrix loop to 60 days max defensively to prevent infinite runaway loops
+      for (let i = 0; i < 60 && suggestedDates.length < 3; i++) {
+        // Skip Sundays as the clinic is closed
+        const dayOfWeek = searchCursor.getUTCDay();
+        const dateString = searchCursor.toISOString().split("T")[0];
+
+        if (dayOfWeek !== 0 && !blockedDates.has(dateString)) {
+          suggestedDates.push(dateString);
+        }
+
+        // Increment cursor forward by 1 calendar day
+        searchCursor.setDate(searchCursor.getDate() + 1);
+      }
+
+      return {
+        success: true,
+        dentistId,
+        requestedTime: prevTime,
+        priorityRule:
+          priority > 3
+            ? "High Priority (Accelerated Window)"
+            : "Standard Tracking",
+        suggestions: suggestedDates,
+      };
+    }),
+
   getByDentistId: publicProcedure
     .input(
       z.object({
-        id: z.number(),
+        id: z.number().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {

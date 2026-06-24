@@ -63,8 +63,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex  flex-col items-center justify-center min-h-screen">
-      <div className="flex  items-center gap-4">
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <div className="flex sm:flex-row flex-col items-center gap-4">
         <div className="border flex flex-col rounded-md p-2 w-80 h-96">
           <div
             className={`bg-gradient-to-br ${gradient?.css}  h-72 rounded-md`}

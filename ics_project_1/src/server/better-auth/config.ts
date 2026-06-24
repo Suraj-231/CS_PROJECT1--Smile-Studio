@@ -9,15 +9,7 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg", // or "pg" or "mysql"
   }),
-  user: {
-    additionalFields: {
-      role: {
-        type: "string",
-        optional: true,
-        default: "user",
-      },
-    },
-  },
+
   plugins: [admin()],
   emailAndPassword: {
     enabled: true,
@@ -37,5 +29,3 @@ export const auth = betterAuth({
 });
 
 export type Session = typeof auth.$Infer.Session;
-
-export default auth;

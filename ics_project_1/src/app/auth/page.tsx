@@ -4,7 +4,8 @@ import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { authClient } from "~/server/better-auth/client";
 import { SiGoogle } from "@icons-pack/react-simple-icons";
-import { useRouter } from "next/navigation";
+
+import { toast } from "sonner";
 
 export default function AuthPage() {
   const [form, setForm] = useState<"signUp" | "signIn">("signUp");
@@ -64,7 +65,6 @@ export default function AuthPage() {
 }
 
 export function SignUpForm() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -83,11 +83,13 @@ export function SignUpForm() {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        role: "user",
+        callbackURL: "/profile",
       });
-      router.push("/profile");
     } catch (error) {
-      console.log("Error signing up");
+      toast.error("Error creating an account", {
+        description: "Please try again.",
+      });
+      console.log(error);
     } finally {
       setLoading(false);
     }
@@ -139,7 +141,6 @@ export function SignUpForm() {
 }
 
 export function SignInForm() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -152,9 +153,10 @@ export function SignInForm() {
       await authClient.signIn.email({
         email: formData.email,
         password: formData.password,
+        callbackURL: "/profile",
       });
-      router.push("/profile");
     } catch (error) {
+      toast.error("Error logging in.", { description: "Please try again." });
       console.log(error);
     } finally {
       setLoading(false);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useBook } from "../hooks/use-book";
 import { Calendar } from "~/components/ui/calendar";
+import { uploadFilesFromServer } from "~/lib/uploadthing";
 import { ServiceCard, DentistCard, DetailCard } from "./cards";
 import { Alert, AlertTitle } from "~/components/ui/alert";
 import { Ban, Clock, UserCircle2, CirclePlus } from "lucide-react";
@@ -8,6 +9,7 @@ import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
 import { Skeleton } from "~/components/ui/skeleton";
 import { toast } from "sonner";
+
 import { authClient } from "~/server/better-auth/client";
 import {
   Select,
@@ -16,7 +18,6 @@ import {
   SelectItem,
   SelectTrigger,
 } from "~/components/ui/select";
-import { UploadButton, UploadDropzone } from "~/utils/uploadthing";
 
 import {
   Dialog,
@@ -116,12 +117,12 @@ interface ServiceType {
   id: number;
   name: string;
   description: string | null;
-  estimatedTime: string;
+  estimatedTime: string | null;
 }
 export function ServiceForm() {
   const [query, setQuery] = useState("");
   const [filteredServices, setFilteredServices] = useState<ServiceType[]>([]);
-  const { data: services } = api.services.getAll.useQuery();
+  const { data: services, isLoading } = api.services.getAll.useQuery();
   useEffect(() => {
     if (query && services) {
       const filteredServices = services.filter((service) =>
@@ -146,15 +147,25 @@ export function ServiceForm() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search for a service..."
         />
-        <InputGroupAddon align="inline-end  ">
+        <InputGroupAddon align="inline-end">
           {filteredServices.length} services
         </InputGroupAddon>
       </InputGroup>
 
       <div className="flex flex-col px-4 gap-4">
-        {filteredServices.map((service) => (
-          <ServiceCard key={service.id} props={service} />
-        ))}
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="p-6 rounded-lg w-full" />
+          ))
+        ) : filteredServices.length > 0 ? (
+          filteredServices.map((service) => (
+            <ServiceCard key={service.id} props={service} />
+          ))
+        ) : (
+          <div className="text-center text-muted-foreground">
+            No services found.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -168,13 +179,21 @@ export function DentistForm() {
         Select your preferred dentist.
       </p>
       <div className="flex gap-20">
-        {isLoading
-          ? Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="p-8 rounded-lg" />
-            ))
-          : dentists?.map((dentist) => (
+        {isLoading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="w-20 h-20 rounded-lg" />
+          ))
+        ) : dentists ? (
+          dentists.length > 0 ? (
+            dentists?.map((dentist) => (
               <DentistCard key={dentist.id} props={dentist} />
-            ))}
+            ))
+          ) : (
+            <div className="text-center text-muted-foreground">
+              No dentists found.
+            </div>
+          )
+        ) : null}
       </div>
     </div>
   );
@@ -416,7 +435,7 @@ export function AddDentistForm() {
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined);
-
+  const utils = api.useUtils();
   const createDentist = api.dentists.create.useMutation({
     onSuccess: () => {
       toast.success("Dentist added successfully");
@@ -434,71 +453,34 @@ export function AddDentistForm() {
   });
 
   async function handleAddDentist(e: React.FormEvent<HTMLFormElement>) {
+    if (!selectedFile || !formData.name || !formData.description)
+      toast.error("Error submitting form", {
+        description: "Please fill in all fields.",
+      });
     e.preventDefault();
     setLoading(true);
     try {
-      // upload the selected file first (if present) and set imageUrl
-      if (selectedFile && !formData.imageUrl) {
-        try {
-          const uploadedUrl = await uploadFileToUploadThing(selectedFile);
-          if (uploadedUrl) {
-            setFormData((prev) => ({ ...prev, imageUrl: uploadedUrl }));
-          }
-        } catch (err: any) {
-          console.error("Upload failed", err);
-          toast.error("Image upload failed");
-          setLoading(false);
-          return;
-        }
-      }
-
-      if (!formData.name || !formData.imageUrl || !formData.description) {
-        toast.error("Please fill out all fields");
-        setLoading(false);
-        return;
-      }
-
+      const uploadedUrl = await uploadFilesFromServer(selectedFile);
+      setFormData((prev) => ({ ...prev, imageUrl: uploadedUrl }));
       await createDentist.mutateAsync(formData);
     } catch (error) {
       console.error(error);
     } finally {
+      setFormData({
+        name: "",
+        imageUrl: "",
+        description: "",
+      });
+      utils.dentists.getAll.invalidate();
+
       setLoading(false);
     }
   }
 
-  async function uploadFileToUploadThing(file: File): Promise<string | null> {
-    // Sends the file to the UploadThing route. The exact response shape depends on your UploadThing setup.
-    const fd = new FormData();
-    fd.append("file", file);
-
-    const res = await fetch("/api/uploadthing", {
-      method: "POST",
-      body: fd,
-    });
-
-    if (!res.ok) {
-      throw new Error("Upload failed");
-    }
-
-    const data = await res.json();
-    // Try a few common response shapes to extract the uploaded file URL
-    // Adjust this to match your UploadThing response (e.g. data[0].url, data.files[0].url, etc.)
-    const url =
-      data?.[0]?.url ||
-      data?.files?.[0]?.url ||
-      data?.fileUrl ||
-      data?.url ||
-      null;
-
-    return url;
-  }
-
   return (
     <Dialog>
-      <DialogTrigger>
-        <Button variant="ghost" className="bg-muted text-muted-foreground">
-          <CirclePlus /> Add Dentist
-        </Button>
+      <DialogTrigger className="bg-muted rounded-full px-4 py-1 flex items-center gap-2 text-md cursor-pointer text-muted-foreground">
+        <CirclePlus size={16} /> Add Dentist
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -545,8 +527,9 @@ export function AddDentistForm() {
           </div>
           <div>
             <span>Description</span>
-            <Input
-              type="text"
+            <textarea
+              className="bg-muted w-full rounded-lg p-2"
+              rows={4}
               value={formData.description}
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })

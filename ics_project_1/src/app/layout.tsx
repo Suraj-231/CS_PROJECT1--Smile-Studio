@@ -23,8 +23,8 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${dmSans.className} `}>
-      <Header />
       <body className="">
+        <Header />
         <TRPCReactProvider>{children}</TRPCReactProvider>
         <Toaster />
       </body>

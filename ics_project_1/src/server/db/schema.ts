@@ -15,8 +15,7 @@ import {
   boolean,
   integer,
 } from "drizzle-orm/pg-core";
-import { ensureSuspenseTimers } from "node_modules/@tanstack/react-query/build/modern/_tsup-dts-rollup";
-import z from "zod";
+
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
  * database instance for multiple projects.
@@ -32,7 +31,7 @@ export const appointments = pgTable(
     userId: d.text().references(() => user.id),
     dentistId: d.integer().references(() => dentist.id),
     service: d.integer().references(() => service.id),
-    date: d.text().notNull(),
+    date: d.timestamp({ withTimezone: true }).notNull(),
     startTime: d.time().notNull(),
     createdAt: d
       .timestamp({ withTimezone: true })
@@ -51,6 +50,7 @@ export const service = pgTable("services", {
   id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
   name: text("name").notNull(),
   estimatedTime: text("estimated_time"),
+  priority: integer("priority").notNull().default(0),
   description: text("description"),
 });
 

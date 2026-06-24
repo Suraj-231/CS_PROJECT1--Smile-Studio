@@ -39,7 +39,7 @@ interface UserType {
   role?: string | undefined;
 }
 
-export default function CalendarPage() {
+export default function PatientPage() {
   const [selectedUser, setSelectedUser] = useState("");
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
@@ -56,7 +56,7 @@ export default function CalendarPage() {
     api.dentists.getAll.useQuery();
 
   return (
-    <div>
+    <div className="flex flex-col">
       <div className="flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4">
         <div>
           <h1>Patients</h1>
@@ -95,7 +95,7 @@ export default function CalendarPage() {
           <TableBody>
             {usersLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
-                <TableRow>
+                <TableRow key={i}>
                   <TableCell>
                     <Skeleton className="p-5 rounded-lg" />
                   </TableCell>
@@ -129,14 +129,11 @@ export default function CalendarPage() {
                   <TableCell>{user.role}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
-                      <DropdownMenuTrigger>
-                        <Button
-                          onClick={() => setSelectedUser(user.id)}
-                          variant="ghost"
-                          className="w-full"
-                        >
-                          <EllipsisVertical />
-                        </Button>
+                      <DropdownMenuTrigger
+                        className="text-muted-foreground hover:text-primary"
+                        onClick={() => setSelectedUser(user.id)}
+                      >
+                        <EllipsisVertical size={18} />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
                         <DropdownMenuItem>Remove User</DropdownMenuItem>
@@ -175,7 +172,7 @@ export default function CalendarPage() {
             <TableHeader>
               <TableRow>
                 <TableCell>Name</TableCell>
-                <TableCell>Description</TableCell>
+                <TableCell className="">Description</TableCell>
                 <TableCell className="text-right">Actions</TableCell>
               </TableRow>
             </TableHeader>
@@ -183,13 +180,15 @@ export default function CalendarPage() {
               {dentists.map((dentist) => (
                 <TableRow key={dentist.id}>
                   <TableCell>{dentist.name}</TableCell>
-                  <TableCell>{dentist.description}</TableCell>
+                  <TableCell className="text-xs  text-muted-foreground">
+                    {dentist.description
+                      ? dentist.description.slice(0, 110) + "..."
+                      : ""}
+                  </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
-                      <DropdownMenuTrigger>
-                        <Button variant="ghost">
-                          <EllipsisVertical />
-                        </Button>
+                      <DropdownMenuTrigger className="text-muted-foreground hover:text-primary">
+                        <EllipsisVertical size={18} />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
                         <DropdownMenuItem>Edit</DropdownMenuItem>

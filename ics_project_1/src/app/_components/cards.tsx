@@ -40,9 +40,9 @@ export function ImageCard(props: ImageCardProps) {
 interface ServiceCardProps {
   props: {
     name: string;
-    description: string;
+    description: string | null;
     id: number;
-    estimatedTime: string;
+    estimatedTime: string | null;
   };
 }
 
