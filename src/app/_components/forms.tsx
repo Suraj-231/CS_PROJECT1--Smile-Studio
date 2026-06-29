@@ -4,7 +4,14 @@ import { Calendar } from "~/components/ui/calendar";
 import { uploadFilesFromServer } from "~/lib/uploadthing";
 import { ServiceCard, DentistCard, DetailCard } from "./cards";
 import { Alert, AlertTitle } from "~/components/ui/alert";
-import { Ban, Clock, UserCircle2, CirclePlus } from "lucide-react";
+import {
+  Ban,
+  Clock,
+  UserCircle2,
+  CirclePlus,
+  CalendarIcon,
+  Loader2,
+} from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -116,6 +123,7 @@ const TIMES = [
 interface ServiceType {
   id: number;
   name: string;
+  priority: number | null;
   description: string | null;
   estimatedTime: string | null;
 }
@@ -224,13 +232,12 @@ export function CalendarForm() {
           modifiers={{
             booked: bookings?.map((b) => new Date(b.date)),
           }}
-          modifiersClassNames={{
-            booked: "bg-gray-50 text-gray-300 rounded-md",
-          }}
-          disabled={{
-            before: new Date(),
-            dayOfWeek: [0],
-          }}
+          modifiersClassNames={
+            {
+              // booked: "border rounded-md",
+            }
+          }
+          disabled={[{ before: new Date() }, { dayOfWeek: [0, 6] }]}
           className="rounded-lg mx-auto "
         />
         <div className="grid grid-auto-fit items-center mt-5">
@@ -291,48 +298,56 @@ export function CalendarForm() {
 
 export function ConfirmationForm() {
   const book = useBook();
-
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-7 max-h-lvh mb-8">
       <p className="text-muted-foreground text-center">
         Kindly confirm your appointment details.
       </p>
 
-      <div className="flex flex-col gap-1 text-center">
-        {book.serviceType ? (
-          <DetailCard
-            props={{
-              icon: <UserCircle2 size={15} />,
-              title: "Service",
-              value: book.serviceType.name,
-            }}
-          />
-        ) : (
-          <div className="col-span-2">You have not selected a service.</div>
-        )}
-        {book.startTime ? (
-          <DetailCard
-            props={{
-              icon: <Clock size={15} />,
-              title: "Start time",
-              value: book.startTime,
-            }}
-          />
-        ) : (
-          <div className="col-span-2">You have not selected a start time.</div>
-        )}
-        {book.dentist ? (
-          <DetailCard
-            props={{
-              icon: <UserCircle2 size={15} />,
-              title: "Dentist",
-              value: book.dentist.name,
-            }}
-          />
-        ) : (
-          <div className="col-span-2">You have not selected a dentist.</div>
-        )}
-      </div>
+      {book.service ? (
+        <DetailCard
+          props={{
+            icon: <UserCircle2 size={15} />,
+            title: "Service",
+            value: book.service.name,
+          }}
+        />
+      ) : (
+        <div className="col-span-2">You have not selected a service.</div>
+      )}
+      {book.date ? (
+        <DetailCard
+          props={{
+            icon: <CalendarIcon size={15} />,
+            title: "Date",
+            value: book.date.toLocaleDateString(),
+          }}
+        />
+      ) : (
+        <div className="col-span-2">You have not selected a date.</div>
+      )}
+      {book.startTime ? (
+        <DetailCard
+          props={{
+            icon: <Clock size={15} />,
+            title: "Start time",
+            value: book.startTime,
+          }}
+        />
+      ) : (
+        <div className="col-span-2">You have not selected a start time.</div>
+      )}
+      {book.dentist ? (
+        <DetailCard
+          props={{
+            icon: <UserCircle2 size={15} />,
+            title: "Dentist",
+            value: book.dentist.name,
+          }}
+        />
+      ) : (
+        <div className="col-span-2">You have not selected a dentist.</div>
+      )}
     </div>
   );
 }
@@ -632,6 +647,8 @@ export function AddServiceForm() {
                   <SelectItem value="7">1 week</SelectItem>
                   <SelectItem value="14">2 weeks</SelectItem>
                   <SelectItem value="30">1 month</SelectItem>
+                  <SelectItem value="180">6 months</SelectItem>
+                  <SelectItem value="365">1 year</SelectItem>
                 </SelectContent>
               </Select>
               <Select
@@ -808,4 +825,195 @@ export function SignInForm() {
       </Button>
     </div>
   );
+}
+
+export function EditAppointmentForm({
+  appointmentId,
+}: {
+  appointmentId: number;
+}) {
+  const book = useBook();
+  const { data: allApps, isLoading: allAppsL } = api.apps.getAll.useQuery();
+  const bookingsByDentist = api.apps.getByDentistId.useQuery(
+    {
+      id: book.dentist.id,
+    },
+    { enabled: !!book.dentist.id },
+  );
+  const { data: dentists, isLoading: dentsistL } =
+    api.dentists.getAll.useQuery();
+  const { data: services, isLoading: servicesL } =
+    api.services.getAll.useQuery();
+  const { data: prevApp, isLoading: appL } = api.apps.getById.useQuery({
+    appointmentId: parseInt(appointmentId),
+  });
+
+  if (prevApp) {
+    const app = prevApp[0];
+    const formattedDate = app?.appointments.date
+      ? new Date(app.appointments.date).toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+      : "—";
+
+    return (
+      <div className="flex flex-col gap-4">
+        {/* Current appointment summary */}
+        <div className="rounded-lg border bg-muted/30 p-3">
+          <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Current Appointment
+          </p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <CirclePlus className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span className="truncate font-medium">{app?.services.name}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <UserCircle2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span className="truncate">{app?.dentists.name}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{formattedDate}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Clock className="h-3.5 w-3.5 shrink-0" />
+              <span>{app?.appointments.startTime?.slice(0, 5)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Form header */}
+        <div>
+          <p className="text-sm font-medium">Update your appointment</p>
+          <p className="text-xs text-muted-foreground">
+            Change only the fields you need to update.
+          </p>
+        </div>
+
+        {/* Dentist */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium">Dentist</label>
+          <Select
+            onValueChange={(value) =>
+              book.setDentist({
+                id: dentists?.find((d) => d.name === value)?.id ?? 0,
+                name: value,
+              })
+            }
+            value={book.dentist.name || app?.dentists.name}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a dentist" />
+            </SelectTrigger>
+            <SelectContent>
+              {dentists?.map((dentist) => (
+                <SelectItem key={dentist.id} value={dentist.name}>
+                  {dentist.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Service */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium">Service</label>
+          <Select
+            onValueChange={(value) =>
+              book.setService({
+                id: services?.find((s) => s.name === value)?.id ?? 0,
+                priority:
+                  services?.find((s) => s.name === value)?.priority ?? 0,
+                name: value,
+              })
+            }
+            value={book.service?.name || app?.services.name}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a service" />
+            </SelectTrigger>
+            <SelectContent>
+              {services?.map((service) => (
+                <SelectItem key={service.id} value={service.name}>
+                  {service.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {/* Time */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium">Time</label>
+          {bookingsByDentist.isLoading ? (
+            <Skeleton className="h-9 w-full rounded-lg" />
+          ) : (
+            <Select onValueChange={(value) => book.setStartTime(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a time" />
+              </SelectTrigger>
+              <SelectContent>
+                {book.date?.toLocaleDateString() ===
+                new Date().toLocaleDateString()
+                  ? TIMES.filter(
+                      (t) =>
+                        parseInt(t.value.substring(0, 2)) >
+                        new Date().getHours(),
+                    ).map((t) => (
+                      <SelectItem key={t.value} value={t.value}>
+                        {t.label}
+                      </SelectItem>
+                    ))
+                  : TIMES.filter(
+                      (t) =>
+                        !bookingsByDentist?.data?.some(
+                          (b) => b.startTime === t.value,
+                        ),
+                    ).map((t) => (
+                      <SelectItem key={t.value} value={t.value}>
+                        {t.label}
+                      </SelectItem>
+                    ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+
+        {/* Date */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium">Date</label>
+          <Calendar
+            mode="single"
+            defaultMonth={
+              app?.appointments.date
+                ? new Date(app.appointments.date)
+                : undefined
+            }
+            selected={book.date}
+            onSelect={(value) => book.setDate(value)}
+            modifiers={{
+              booked: allApps?.map((a) => a.date),
+            }}
+            modifiersClassNames={{
+              booked: "bg-muted",
+            }}
+            disabled={[{ before: new Date() }, { dayOfWeek: [0, 6] }]}
+            className="mx-auto rounded-lg border"
+          />
+          <p className="text-xs text-muted-foreground">
+            Weekends and past dates are unavailable.
+          </p>
+        </div>
+      </div>
+    );
+  } else {
+    return (
+      <div className="flex min-h-32 items-center justify-center">
+        <Loader2 className="animate-spin text-primary" />
+      </div>
+    );
+  }
 }

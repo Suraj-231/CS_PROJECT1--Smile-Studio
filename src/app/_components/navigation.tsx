@@ -24,8 +24,7 @@ export function Header() {
   const isMobile = useIsMobile();
   return (
     <div className="flex py-3 items-center justify-between px-8 border-b w-full">
-      <h1 className="text-xl text-muted-foreground">Welcome to Smile Studio</h1>
-
+      <div />
       {isMobile ? (
         <div className={`flex gap-4`}>
           <Button onClick={() => setOpen(!open)}>
@@ -35,7 +34,6 @@ export function Header() {
             <div className="absolute self-stretch flex flex-col justify-center py-8 gap-8 items-center top-14 right-0 w-60 bg-white h-screen z-100 border-l transition-all duration-300">
               <Link href="/">
                 <Button variant={pathname === "/" ? "default" : "ghost"}>
-                  <House />
                   Home
                 </Button>
               </Link>
@@ -46,26 +44,20 @@ export function Header() {
                       pathname.startsWith("/admin") ? "default" : "ghost"
                     }
                   >
-                    <Shield />
                     Admin
                   </Button>
                 </Link>
               )}
               <Link href="/book">
                 <Button variant={pathname === "/book" ? "default" : "ghost"}>
-                  Book <BookCheck />
+                  Book
                 </Button>
               </Link>
 
               {session ? (
                 <div className="flex flex-col items-center gap-8">
                   <Link href="/profile">
-                    <Button
-                      variant={pathname === "/profile" ? "default" : "ghost"}
-                    >
-                      <UserCircle2 />
-                      Profile
-                    </Button>
+                    <Button>Profile</Button>
                   </Link>
                   <Avatar>
                     {session?.user?.image && (
@@ -83,7 +75,6 @@ export function Header() {
                 <Link href="/auth">
                   <Button variant={pathname === "/auth" ? "default" : "ghost"}>
                     Sign In
-                    <DoorOpen />
                   </Button>
                 </Link>
               )}
@@ -94,35 +85,47 @@ export function Header() {
         <div className="flex gap-4">
           <Link href="/">
             <Button variant={pathname === "/" ? "default" : "ghost"}>
-              <House />
               Home
             </Button>
           </Link>
           {session?.user.role === "admin" && (
             <Link href="/admin">
               <Button variant={pathname === "/admin" ? "default" : "ghost"}>
-                Admin <Shield />
+                Admin
               </Button>
             </Link>
           )}
           <Link href="/book">
             <Button variant={pathname === "/book" ? "default" : "ghost"}>
-              Book <BookCheck />
+              Book
             </Button>
           </Link>
           <ButtonGroup>
             {session ? (
               <Link href="/profile">
-                <Button variant={pathname === "/profile" ? "default" : "ghost"}>
-                  Welcome, {session.user.name}
-                  <UserCircle2 />
+                <Button
+                  variant={pathname === "/profile" ? "default" : "ghost"}
+                  className={pathname === "/profile" ? "text-white" : ""}
+                >
+                  <Avatar size="sm">
+                    {session.user.image && (
+                      <AvatarImage
+                        src={session.user.image}
+                        alt={session.user.name}
+                      />
+                    )}
+
+                    <AvatarFallback>
+                      {session.user.name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  {session.user.name}
                 </Button>
               </Link>
             ) : (
               <Link href="/auth">
                 <Button variant={pathname === "/auth" ? "default" : "ghost"}>
                   Sign In
-                  <DoorOpen />
                 </Button>
               </Link>
             )}

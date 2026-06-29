@@ -1,5 +1,9 @@
 import { Resend } from "resend";
-import { AppointmentConfirmationEmail } from "./email-template";
+import {
+  AppointmentConfirmationEmail,
+  MagicLinkEmailTemplate,
+} from "./email-template";
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendConfirmationEmail(details: {
@@ -36,8 +40,8 @@ export async function sendConfirmationEmail(details: {
   const icsBuffer = Buffer.from(icsContent, "utf-8");
 
   // 3. Dispatch directly through Resend
-  return await resend.emails.send({
-    from: "Dental Clinic <appointments@yourdomain.com>",
+  await resend.emails.send({
+    from: "Dental Clinic <widgetflow-email.singularity.co.ke>",
     to: [email],
     subject: `Confirmed: Appointment for ${serviceName}`,
     react: AppointmentConfirmationEmail({
@@ -54,5 +58,24 @@ export async function sendConfirmationEmail(details: {
         contentType: "text/calendar",
       },
     ],
+  });
+}
+
+export async function resendMagicLink(
+  email: string,
+  token: string,
+  url: string,
+  metadata: any,
+) {
+  await resend.emails.send({
+    from: "Dental Clinic <widgetflow-email.singularity.co.ke>",
+    to: [email],
+    subject: "Magic Link",
+    react: MagicLinkEmailTemplate({
+      email,
+      token,
+      url,
+      metadata,
+    }),
   });
 }

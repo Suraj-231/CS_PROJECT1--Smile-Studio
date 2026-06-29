@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
+import Link from "next/link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,6 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
+import { toast } from "sonner";
+
 import { ButtonGroup } from "~/components/ui/button-group";
 import {
   Book,
@@ -20,12 +23,27 @@ import {
   RefreshCcw,
   Clock,
   ChevronLeft,
+  Wrench,
+  BookUserIcon,
+  BookUser,
+  Minus,
+  PenLine,
 } from "lucide-react";
 import { authClient } from "~/server/better-auth/client";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { api } from "~/trpc/react";
 import { Skeleton } from "~/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+  DialogTrigger,
+} from "~/components/ui/dialog";
+
 const GRADIENTS = [
   { name: "modern iris", css: "from-[#667EEA] via-[#764BA2] to-[#AC92EC]" },
   { name: "vibrant mint", css: "from-[#43E97B] via-[#38F9D7] to-[#209CFF]" },
@@ -40,6 +58,7 @@ const GRADIENTS = [
 ];
 
 export default function ProfilePage() {
+  const utils = api.useUtils();
   const [page, setPage] = useState(1);
   const currentOffset = (page - 1) * 5;
 
@@ -53,8 +72,18 @@ export default function ProfilePage() {
     isLoading: appsLoading,
     isError: appsError,
   } = api.apps.getForUser.useQuery({
-    limit: 10,
+    limit: 5,
     offset: currentOffset,
+  });
+
+  const deleteAppointment = api.apps.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Appointment deleted successfully");
+      utils.apps.getForUser.invalidate();
+    },
+    onError: () => {
+      toast.error("Failed to delete appointment");
+    },
   });
 
   if (isPending) {
@@ -134,78 +163,183 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="border overflow-y-auto p-2 rounded-lg w-80 h-96">
-          <div>
-            <div className="flex items-center gap-4">
-              <div className="flex gap-2 items-center text-sm text-muted-foreground">
-                <Book size={16} />
-                Appointment History
-              </div>
-              <ButtonGroup>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={page === 1}
-                  onClick={() => setPage((old) => Math.max(old - 1, 1))}
-                >
-                  <ChevronLeft />
-                </Button>
-                <Button size="sm" disabled variant="outline" className="">
-                  {page}/{apps?.meta.count}
-                </Button>
-                {apps && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    // Disable if we fetched fewer items than the page limit (means we hit the end)
-                    disabled={apps?.data?.length < 5}
-                    onClick={() => setPage((old) => old + 1)}
-                  >
-                    <ChevronRight />
-                  </Button>
-                )}
-              </ButtonGroup>
+        <div className="flex h-96 w-80 flex-col gap-3 overflow-y-auto rounded-lg border p-3">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-sm font-medium">
+              <Book size={14} />
+              My Appointments
             </div>
+            <ButtonGroup>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page === 1}
+                onClick={() => setPage((old) => Math.max(old - 1, 1))}
+              >
+                <ChevronLeft size={12} />
+              </Button>
+              <Button size="sm" variant="outline" disabled className="text-xs">
+                {page} / {apps?.meta.count}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!apps || apps.data.length < 5}
+                onClick={() => setPage((old) => old + 1)}
+              >
+                <ChevronRight size={12} />
+              </Button>
+            </ButtonGroup>
           </div>
 
-          <div className="flex flex-col mt-4 gap-2">
+          {/* Appointment list */}
+          <div className="flex flex-col gap-2">
             {appsLoading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="w-full p-8 mb-2" />
+              Array.from({ length: 3 }, (_, i) => i + 1).map((i) => (
+                <Skeleton key={i} className="h-24 w-full rounded-lg" />
               ))
-            ) : apps ? (
-              apps.data.map((app, i) => (
-                <div
-                  key={app.id}
-                  className={`p-2 px-4  text-sm rounded-lg ${new Date() === app.date ? "bg-primary" : ""} bg-muted`}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="flex items-center gap-2">
-                      {" "}
-                      <Calendar size={12} />
-                      {new Date(app.date).toLocaleDateString("en-US", {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <Clock size={12} />
-                      {app.startTime.slice(0, 5)}
-                    </span>
-                  </div>
-                  <DropdownMenuSeparator />
-                  <span className="text-xs text-muted-foreground">
-                    {" "}
-                    {app.service.name}-{app.dentist.name}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <div className="text-xs text-muted-foreground text-center mt-10">
-                No appointments found.
+            ) : !apps || apps.data.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-10 text-center">
+                <Calendar size={28} className="text-muted-foreground/40" />
+                <p className="text-xs text-muted-foreground">
+                  No appointments yet.
+                </p>
+                <Link href="/book">
+                  <Button size="sm" variant="outline" className="text-xs">
+                    Book one now
+                  </Button>
+                </Link>
               </div>
+            ) : (
+              apps.data.map((app) => {
+                const isUpcoming = new Date(app.date) >= new Date();
+
+                if (isUpcoming) {
+                  return (
+                    <div
+                      key={app.id}
+                      className="flex flex-col gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3"
+                    >
+                      {/* Badge + actions */}
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-primary">
+                          <span className="h-1.5 w-1.5 rounded-sm bg-primary" />
+                          Upcoming
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {/*<Link href={`profile/appointments/${app.id}`}>
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                            >
+                              <PenLine size={11} />
+                            </Button>
+                          </Link>*/}
+                          <Dialog>
+                            <DialogTrigger>
+                              <Button
+                                size="xs"
+                                variant="ghost"
+                                className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                              >
+                                <Minus size={11} />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Delete Appointment</DialogTitle>
+                                <DialogDescription>
+                                  Are you sure you want to delete this
+                                  appointment?
+                                </DialogDescription>
+                              </DialogHeader>
+
+                              <DialogFooter>
+                                <Button
+                                  variant="ghost"
+                                  onClick={() => setPage(page - 1)}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  onClick={async () =>
+                                    await deleteAppointment.mutateAsync({
+                                      appointmentId: app.id,
+                                      dentistId: app.dentist.id,
+                                    })
+                                  }
+                                >
+                                  Delete
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      </div>
+
+                      {/* Service name */}
+                      <p className="text-sm font-semibold leading-none">
+                        {app.service.name}
+                      </p>
+
+                      {/* Date + time */}
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Calendar size={11} />
+                          {new Date(app.date).toLocaleDateString("en-US", {
+                            weekday: "short",
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock size={11} />
+                          {app.startTime.slice(0, 5)}
+                        </span>
+                      </div>
+
+                      {/* Dentist */}
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <BookUser size={11} />
+                        {app.dentist.name}
+                      </span>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={app.id}
+                    className="flex items-center justify-between rounded-lg px-3 py-2 text-xs transition-colors hover:bg-muted/50"
+                  >
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium text-foreground/80">
+                        {app.service.name}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {app.dentist.name}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end gap-0.5 text-muted-foreground">
+                      <span>
+                        {new Date(app.date).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock size={10} />
+                        {app.startTime.slice(0, 5)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>

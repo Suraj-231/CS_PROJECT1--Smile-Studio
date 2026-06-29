@@ -2,6 +2,9 @@
 import { api } from "~/trpc/react";
 import { authClient } from "~/server/better-auth/client";
 import { useState, useEffect } from "react";
+import { SendIcon } from "lucide-react";
+import { Button } from "~/components/ui/button";
+
 import {
   Card,
   CardContent,
@@ -33,6 +36,7 @@ import {
   getServiceDistributionData,
 } from "~/lib/summaries";
 import { Book, BookUp, BookUser, UsersIcon, Wrench } from "lucide-react";
+import { toast } from "sonner";
 const SERVICES = [
   {
     id: 1,
@@ -96,6 +100,15 @@ export default function AdminPage() {
   const trafficData = getHourlyTraffic(apps?.data);
   const dentistData = getAppsByDentist(apps?.data);
   const serviceData = getServiceDistributionData(apps?.data);
+
+  const sendEmail = api.email.sendGreeting.useMutation({
+    onSuccess: () => {
+      toast.success("Email sent successfully");
+    },
+    onError: () => {
+      toast.error("Failed to send email");
+    },
+  });
 
   return (
     <div>

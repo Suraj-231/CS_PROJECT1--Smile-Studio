@@ -41,6 +41,7 @@ interface ServiceCardProps {
   props: {
     name: string;
     description: string | null;
+    priority: number | null;
     id: number;
     estimatedTime: string | null;
   };
@@ -48,13 +49,13 @@ interface ServiceCardProps {
 
 export function ServiceCard(props: ServiceCardProps) {
   const book = useBook();
-  const { name, description, id, estimatedTime } = props.props;
+  const { name, description, priority, id, estimatedTime } = props.props;
   return (
     <div
       key={id}
-      onClick={() => book.setServiceType({ id, name })}
+      onClick={() => book.setService({ id, priority, name })}
       className={`
-        ${book.serviceType?.id === id && "border-primary border bg-primary text-white"}
+        ${book.service?.id === id && "border-primary border bg-primary text-white"}
         rounded-md cursor-pointer hover:shadow-xs
         `}
     >
@@ -62,7 +63,7 @@ export function ServiceCard(props: ServiceCardProps) {
         <h2 className="text-xl font-bold">{name}</h2>
         <p className={"text-sm "}>Estimated Time: {estimatedTime}</p>
         <p
-          className={`text-sm ${book.serviceType?.id === id ? "text-white" : "text-muted-foreground"}`}
+          className={`text-sm ${book.service?.id === id ? "text-white" : "text-muted-foreground"}`}
         >
           {description}
         </p>

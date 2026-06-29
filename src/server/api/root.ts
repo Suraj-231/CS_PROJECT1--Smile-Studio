@@ -3,6 +3,7 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 import { dentistRouter } from "./routers/dentist";
 import { usersRouter } from "./routers/users";
 import { servicesRouter } from "./routers/services";
+import { emailRouter } from "./routers/email";
 
 /**
  * This is the primary router for your server.
@@ -11,6 +12,7 @@ import { servicesRouter } from "./routers/services";
  */
 export const appRouter = createTRPCRouter({
   apps: appsRouter,
+  email: emailRouter,
   users: usersRouter,
   dentists: dentistRouter,
   services: servicesRouter,

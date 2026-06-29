@@ -28,6 +28,17 @@ export const appsRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       //check if appointment already exists
+      const existingAppointmentOnDate =
+        await ctx.db.query.appointments.findFirst({
+          where: (appointments, { and, eq }) =>
+            and(
+              eq(appointments.userId, ctx.session.user.id),
+              eq(appointments.date, input.date),
+            ),
+        });
+      if (existingAppointmentOnDate) {
+        throw new Error("You have already booked an appointment on this date.");
+      }
       const existingAppointment = await ctx.db.query.appointments.findFirst({
         where: (appointments, { and, eq }) =>
           and(
@@ -105,6 +116,55 @@ export const appsRouter = createTRPCRouter({
           }
         }
         return { success: true };
+      }
+    }),
+
+  getById: publicProcedure
+    .input(
+      z.object({
+        appointmentId: z.number(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const appointment = await ctx.db
+        .select()
+        .from(appointments)
+        .where(eq(appointments.id, input.appointmentId))
+        .innerJoin(dentist, eq(appointments.dentistId, dentist.id))
+        .innerJoin(service, eq(appointments.service, service.id));
+
+      return appointment;
+    }),
+
+  update: publicProcedure
+    .input(
+      z.object({
+        appointmentId: z.number(),
+        dentist: z.object({
+          id: z.number(),
+          name: z.string(),
+        }),
+        date: z.string().datetime().pipe(z.coerce.date()),
+        startTime: z.string(),
+        service: z.object({
+          id: z.number(),
+          name: z.string(),
+        }),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        await ctx.db
+          .update(appointments)
+          .set({
+            dentistId: input.dentist.id,
+            date: input.date,
+            startTime: input.startTime,
+            service: input.service.id,
+          })
+          .where(eq(appointments.id, input.appointmentId));
+      } catch (error) {
+        console.error(error);
       }
     }),
 
@@ -197,102 +257,104 @@ export const appsRouter = createTRPCRouter({
     return times ?? null;
   }),
 
-  getById: publicProcedure
+  getFollowUp: publicProcedure
     .input(
       z.object({
-        id: z.string().min(1),
+        dentist: z.object({
+          id: z.number(),
+          name: z.string(),
+        }),
+        date: z.string().datetime().pipe(z.coerce.date()),
+        startTime: z.string(), // e.g., "10:30:00"
+        service: z.object({
+          id: z.number(),
+          priority: z.number(), // Used as the base number of days to wait
+          name: z.string(),
+        }),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const data = await ctx.db.query.appointments.findMany({
-        where: (appointments, { eq }) => eq(appointments.userId, input.id),
+      const { dentist, date, startTime, service } = input;
+
+      const baseDate = new Date(date);
+      if (isNaN(baseDate.getTime())) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid date format.",
+        });
+      }
+
+      // 1. Calculate the target base follow-up date based on service priority
+      const targetFollowUpDate = new Date(baseDate);
+      targetFollowUpDate.setDate(
+        targetFollowUpDate.getDate() + service.priority,
+      );
+
+      // 2. Fetch the dentist's busy appointments starting from that target date onwards
+      // Since your table column is a timestamp with timezone, we pass the Date object directly
+      const busyAppointments = await ctx.db
+        .select({
+          date: appointments.date,
+          startTime: appointments.startTime,
+        })
+        .from(appointments)
+        .where(
+          and(
+            eq(appointments.dentistId, dentist.id),
+            gte(appointments.date, targetFollowUpDate),
+          ),
+        );
+
+      // 3. Create a Set of strings tracking which exact dates already have this time slot booked
+      const blockedDates = new Set<string>();
+      busyAppointments.forEach((app) => {
+        // Safe string normalization for exact time slot matches ("10:30:00" vs "10:30")
+        const appTimeClean = app.startTime.substring(0, 5);
+        const inputTimeClean = startTime.substring(0, 5);
+
+        if (appTimeClean === inputTimeClean) {
+          // Normalize the date to YYYY-MM-DD string to store in the conflict cache Set
+          const dateStr = new Date(app.date).toISOString().slice(0, 10);
+          blockedDates.add(dateStr);
+        }
       });
-      return data ?? null;
+
+      // 4. Scan forward day-by-day starting from the target window to find the closest vacant slot
+      let finalFollowUpDate = new Date(targetFollowUpDate);
+      let slotFound = false;
+
+      // Defensive ceiling loop over 30 days maximum to guarantee closure protection
+      for (let i = 0; i < 30; i++) {
+        // Skip Sundays completely as the clinic is closed
+        const dayOfWeek = finalFollowUpDate.getUTCDay();
+        const currentDateStr = finalFollowUpDate.toISOString().slice(0, 10);
+
+        if (dayOfWeek !== 0 && !blockedDates.has(currentDateStr)) {
+          slotFound = true;
+          break; // Found an open day! Stop iterating.
+        }
+
+        // Advance cursor forward by 1 calendar day to search the next interval
+        finalFollowUpDate.setDate(finalFollowUpDate.getDate() + 1);
+      }
+
+      if (!slotFound) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message:
+            "Could not find an available follow-up slot for this dentist within a 30-day window.",
+        });
+      }
+
+      return {
+        followUpDate: finalFollowUpDate,
+        dentistId: dentist.id,
+        startTime,
+        serviceId: service.id,
+        wasShifted:
+          finalFollowUpDate.getTime() !== targetFollowUpDate.getTime(),
+      };
     }),
-
-  // getFollowUp: publicProcedure
-  //   .input(
-  //     z.object({
-  //       serviceId: z.number(),
-  //       priority: z.number(),
-  //       dentistId: z.number(),
-  //       prevDate: z.string(),
-  //       prevTime: z.string(),
-  //     }),
-  //   )
-  //   .query(async ({ input, ctx }) => {
-  //     const { dentistId, prevDate, prevTime, priority } = input;
-
-  //     // 1. Calculate a base date to start searching from
-  //     const baseDate = new Date(prevDate);
-  //     if (isNaN(baseDate.getTime())) {
-  //       throw new Error("Invalid prevDate format.");
-  //     }
-
-  //     // Determine starting gap based on urgency priority
-  //     // High priority (>3): Look as early as 3 days from the previous visit
-  //     // Normal priority (<=3): Standard 14 days (2 weeks) routine follow-up window
-  //     const daysToWait = priority > 3 ? 3 : 14;
-  //     baseDate.setDate(baseDate.getDate() + daysToWait);
-
-  //     // 2. Fetch all upcoming appointments for this dentist to detect slot conflicts
-  //     // Grabbing anything from the base start date onwards
-  //     const formattedStartDateString = baseDate.toISOString().split("T")[0];
-
-  //     const busyAppointments = await ctx.db
-  //       .select({
-  //         date: appointments.date,
-  //         startTime: appointments.startTime,
-  //       })
-  //       .from(appointments)
-  //       .where(
-  //         and(
-  //           eq(appointments.dentistId, dentistId),
-  //           gte(appointments.date, baseDate),
-  //         ),
-  //       );
-
-  //     // Create a Set of "YYYY-MM-DD" strings representing days where the requested time slot is blocked
-  //     const blockedDates = new Set<string>();
-  //     busyAppointments.forEach((app) => {
-  //       // Normalizing times to compare cleanly (e.g., matching "09:00:00" or "09:00")
-  //       const appTimeClean = app.startTime.substring(0, 5);
-  //       const inputTimeClean = prevTime.substring(0, 5);
-
-  //       if (appTimeClean === inputTimeClean) {
-  //         blockedDates.add(app.date.toISOString());
-  //       }
-  //     });
-
-  //     // 3. Scan forward Day-by-Day to discover 3 vacant slot openings
-  //     const suggestedDates: string[] = [];
-  //     const searchCursor = new Date(baseDate);
-
-  //     // Limit search matrix loop to 60 days max defensively to prevent infinite runaway loops
-  //     for (let i = 0; i < 60 && suggestedDates.length < 3; i++) {
-  //       // Skip Sundays as the clinic is closed
-  //       const dayOfWeek = searchCursor.getUTCDay();
-  //       const dateString = searchCursor.toISOString().split("T")[0];
-
-  //       if (dayOfWeek !== 0 && !blockedDates.has(dateString)) {
-  //         suggestedDates.push(dateString);
-  //       }
-
-  //       // Increment cursor forward by 1 calendar day
-  //       searchCursor.setDate(searchCursor.getDate() + 1);
-  //     }
-
-  //     return {
-  //       success: true,
-  //       dentistId,
-  //       requestedTime: prevTime,
-  //       priorityRule:
-  //         priority > 3
-  //           ? "High Priority (Accelerated Window)"
-  //           : "Standard Tracking",
-  //       suggestions: suggestedDates,
-  //     };
-  //   }),
 
   getByDentistId: publicProcedure
     .input(
@@ -370,7 +432,7 @@ export const appsRouter = createTRPCRouter({
   getForUser: protectedProcedure
     .input(
       z.object({
-        limit: z.number().min(1).max(50).optional().default(10),
+        limit: z.number().min(1).max(50).optional().default(5),
         offset: z.number().min(0).optional().default(0),
       }),
     )
@@ -396,8 +458,10 @@ export const appsRouter = createTRPCRouter({
         .from(appointments)
         .innerJoin(dentist, eq(appointments.dentistId, dentist.id))
         .innerJoin(service, eq(appointments.service, service.id))
+        .orderBy(desc(appointments.date))
         .where(eq(appointments.userId, ctx.session.user.id))
         .limit(limit)
+
         .offset(offset);
       return {
         data,
