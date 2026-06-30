@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, sql, ilike, and, gte, lte, desc } from "drizzle-orm";
+import { eq, sql, ilike, and, gte, lte, desc, count } from "drizzle-orm";
 import {
   adminProcedure,
   createTRPCRouter,
@@ -443,6 +443,12 @@ export const appsRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const { limit, offset } = input;
+      const totalApps = await ctx.db
+        .select({
+          count: count(appointments.id),
+        })
+        .from(appointments)
+        .where(eq(appointments.userId, ctx.session.user.id));
       const data = await ctx.db
         .select({
           id: appointments.id,
@@ -466,16 +472,115 @@ export const appsRouter = createTRPCRouter({
         .orderBy(desc(appointments.date))
         .where(eq(appointments.userId, ctx.session.user.id))
         .limit(limit)
-
         .offset(offset);
       return {
         data,
         meta: {
           limit,
           offset,
-          count: data.length,
+          count: totalApps[0]?.count,
         },
       };
+    }),
+
+  getRescheduledDateAndTime: publicProcedure
+    .input(
+      z.object({
+        dentistId: z.number(),
+        // The date they are looking to move to (or current date)
+        date: z.string().datetime().pipe(z.coerce.date()),
+        // The preferred time slot they want to keep (e.g., "10:30:00")
+        startTime: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { dentistId, date, startTime } = input;
+
+      const searchStartDate = new Date(date);
+      if (isNaN(searchStartDate.getTime())) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid date format.",
+        });
+      }
+
+      // 1. Grab all future appointments for this dentist starting from the search date
+      // This allows us to load the dentist's busy schedule into memory once, bypassing a heavy database loop
+      const upcomingBusySlots = await ctx.db
+        .select({
+          date: appointments.date,
+          startTime: appointments.startTime,
+        })
+        .from(appointments)
+        .where(
+          and(
+            eq(appointments.dentistId, dentistId),
+            gte(appointments.date, searchStartDate),
+          ),
+        );
+
+      // 2. Build a Set tracking dates where this specific time slot is already taken
+      const blockedDates = new Set<string | undefined>();
+      upcomingBusySlots.forEach((slot) => {
+        const appTimeClean = slot.startTime.substring(0, 5);
+        const targetTimeClean = startTime.substring(0, 5);
+
+        if (appTimeClean === targetTimeClean) {
+          const dateStr = new Date(slot.date).toISOString().split("T")[0];
+          blockedDates.add(dateStr);
+        }
+      });
+
+      // 3. Scan forward day-by-day to collect exactly 3 available alternative slots
+      const suggestions: Array<{
+        date: Date;
+        dateStr: string | undefined;
+        startTime: string;
+      }> = [];
+      let dayCursor = new Date(searchStartDate);
+
+      // Protect against endless loops by bounding our search to a maximum 60-day window
+      for (let i = 0; i < 60; i++) {
+        if (suggestions.length >= 3) break; // We found our 3 open slots!
+
+        const dayOfWeek = dayCursor.getUTCDay(); // 0 = Sunday
+        const dayCursorStr = dayCursor.toISOString().split("T")[0];
+
+        // Ensure the clinic is open (not Sunday) and the time slot isn't blocked
+        if (dayOfWeek !== 0 && !blockedDates.has(dayCursorStr)) {
+          suggestions.push({
+            date: new Date(dayCursor),
+            dateStr: dayCursorStr,
+            startTime: startTime,
+          });
+        }
+
+        // Advance to the next calendar day
+        dayCursor.setDate(dayCursor.getDate() + 1);
+      }
+
+      return {
+        success: true,
+        dentistId,
+        preferredTime: startTime,
+        suggestions,
+      };
+    }),
+
+  reschedule: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        date: z.string().datetime().pipe(z.coerce.date()),
+        startTime: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id, date, startTime } = input;
+      await ctx.db
+        .update(appointments)
+        .set({ date, startTime })
+        .where(eq(appointments.id, id));
     }),
 
   editAppointment: adminProcedure

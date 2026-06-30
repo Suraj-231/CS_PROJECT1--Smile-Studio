@@ -7,7 +7,7 @@ import { admin, magicLink } from "better-auth/plugins";
 import { resendMagicLink } from "../resend/send-email";
 
 export const auth = betterAuth({
-  baseURL: "http://localhost:3000", //process.env.FRONTEND_URL ??
+  baseURL: "http://localhost:3000", //env.FRONTEND_URL ??
   database: drizzleAdapter(db, {
     provider: "pg", // or "pg" or "mysql"
   }),

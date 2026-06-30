@@ -28,6 +28,8 @@ import {
   BookUser,
   Minus,
   PenLine,
+  Trash,
+  Recycle,
 } from "lucide-react";
 import { authClient } from "~/server/better-auth/client";
 import { useRouter } from "next/navigation";
@@ -37,12 +39,15 @@ import { Skeleton } from "~/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
+  DialogClose,
   DialogHeader,
   DialogTitle,
   DialogFooter,
   DialogDescription,
   DialogTrigger,
 } from "~/components/ui/dialog";
+import { resetPassword } from "better-auth/api";
+import { appointments } from "~/server/db/schema";
 
 const GRADIENTS = [
   { name: "modern iris", css: "from-[#667EEA] via-[#764BA2] to-[#AC92EC]" },
@@ -58,14 +63,44 @@ const GRADIENTS = [
 ];
 
 export default function ProfilePage() {
+  const [selectedRescheduledDate, setSelectedRescheduledDate] = useState({
+    appointmentId: 0,
+    date: "",
+  });
+  const [selectedApp, setSelectedApp] = useState({
+    dentistId: 0,
+    date: new Date(),
+    startTime: "",
+    ready: false,
+  });
   const utils = api.useUtils();
   const [page, setPage] = useState(1);
   const currentOffset = (page - 1) * 5;
 
+  const reschduleApp = api.apps.reschedule.useMutation({
+    onSuccess: () => {
+      toast.success("Appointment rescheduled successfully");
+    },
+    onError: () => {
+      toast.error("Failed to reschedule appointment");
+    },
+  });
   const [gradient, setGradient] = useState(
     GRADIENTS[Math.floor(Math.random() * GRADIENTS.length)],
   );
   const router = useRouter();
+  const {
+    data: rescheduledDates,
+    isLoading: rescheduledLoading,
+    isError: rescheduledError,
+  } = api.apps.getRescheduledDateAndTime.useQuery(
+    {
+      dentistId: selectedApp.dentistId,
+      date: selectedApp.date.toISOString(),
+      startTime: selectedApp.startTime,
+    },
+    { enabled: selectedApp.ready },
+  );
   const { data: session, isPending } = authClient.useSession();
   const {
     data: apps,
@@ -179,9 +214,17 @@ export default function ProfilePage() {
               >
                 <ChevronLeft size={12} />
               </Button>
-              <Button size="sm" variant="outline" disabled className="text-xs">
-                {page} / {apps?.meta.count}
-              </Button>
+              {apps?.meta.count && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled
+                  className="text-xs"
+                >
+                  {page} / {Math.ceil(apps.meta.count / 5)}
+                </Button>
+              )}
+
               <Button
                 size="sm"
                 variant="outline"
@@ -227,7 +270,7 @@ export default function ProfilePage() {
                           <span className="h-1.5 w-1.5 rounded-sm bg-primary" />
                           Upcoming
                         </span>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-2">
                           {/*<Link href={`profile/appointments/${app.id}`}>
                             <Button
                               size="xs"
@@ -238,14 +281,103 @@ export default function ProfilePage() {
                             </Button>
                           </Link>*/}
                           <Dialog>
-                            <DialogTrigger>
-                              <Button
-                                size="xs"
-                                variant="ghost"
-                                className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                              >
-                                <Minus size={11} />
-                              </Button>
+                            <DialogTrigger
+                              onClick={() => {
+                                setSelectedApp({
+                                  dentistId: app.dentist.id,
+                                  date: app.date,
+                                  startTime: app.startTime,
+                                  ready: true,
+                                });
+                              }}
+                              className="text-muted-foreground"
+                            >
+                              <Recycle size={16} />
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>
+                                  Reschedule Appointment
+                                </DialogTitle>
+                                <DialogDescription>
+                                  Rescheduling appointment on{" "}
+                                  <span className="text-primary underline">
+                                    {new Date(selectedApp.date).toLocaleString(
+                                      "en-US",
+                                      {
+                                        weekday: "short",
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                      },
+                                    )}
+                                  </span>{" "}
+                                  at
+                                  <span className="text-primary underline">
+                                    {` ${selectedApp.startTime.slice(0, 5)}`}
+                                  </span>
+                                </DialogDescription>
+                                <p className="text-xs text-muted-foreground">
+                                  Click on the date you want to reschedule to.
+                                </p>
+                              </DialogHeader>
+                              {rescheduledLoading ? (
+                                <div className="flex sm:flex-row flex-col items-center gap-2 w-full">
+                                  <Skeleton className="p-3 w-full h-40 rounded-lg" />
+                                  <Skeleton className="p-3 w-full h-40 rounded-lg" />
+                                  <Skeleton className="p-3 w-full h-40 rounded-lg" />
+                                </div>
+                              ) : (
+                                rescheduledDates?.suggestions.map((r, id) => (
+                                  <div
+                                    onClick={() =>
+                                      setSelectedRescheduledDate({
+                                        appointmentId: id,
+                                        date: r.date.toISOString(),
+                                      })
+                                    }
+                                    className={`p-3 w-full hover:cursor-pointer text-center rounded-lg ${id === selectedRescheduledDate.appointmentId ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}
+                                    key={id}
+                                  >
+                                    <h1 className="text-xl">
+                                      {new Date(r.date).toLocaleString(
+                                        "en-US",
+                                        {
+                                          weekday: "short",
+                                          month: "short",
+                                          day: "numeric",
+                                          year: "numeric",
+                                        },
+                                      )}
+                                    </h1>
+                                    <p className="text-sm">
+                                      {r.startTime.slice(0, 5)}
+                                    </p>
+                                  </div>
+                                ))
+                              )}
+                              <DialogFooter>
+                                <DialogClose>
+                                  <Button variant="outline">Cancel</Button>
+                                </DialogClose>
+                                {selectedRescheduledDate && (
+                                  <Button
+                                    onClick={async () => {
+                                      await reschduleApp.mutateAsync({
+                                        id: selectedRescheduledDate.appointmentId,
+                                        date: selectedRescheduledDate.date,
+                                      });
+                                    }}
+                                  >
+                                    Confirm
+                                  </Button>
+                                )}
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                          <Dialog>
+                            <DialogTrigger asChild className="text-destructive">
+                              <Trash size={16} />
                             </DialogTrigger>
                             <DialogContent>
                               <DialogHeader>

@@ -5,8 +5,8 @@ import Image from "next/image";
 export default async function Home() {
   return (
     <div>
-      <div className="flex gap-8 min-h-screen bg-gradient-to-br from-primary/10 to-primary   items-center justify-center">
-        <div className="flex jutsify-between items-center">
+      <div className="flex  gap-8 min-h-screen bg-gradient-to-br from-primary/10 to-primary   items-center justify-center">
+        <div className="flex sm:flex-row flex-col jutsify-between items-center">
           <div className="p-8 items-center justify-center">
             <h1 className="text-6xl text-muted-foreground">
               Welcome to Smile Studio

@@ -7,6 +7,7 @@ import {
   Shield,
   UserCircle2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
@@ -19,6 +20,7 @@ import { useIsMobile } from "~/app/hooks/use-mobile";
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
   const pathname = usePathname();
   const { data: session } = authClient.useSession();
   const isMobile = useIsMobile();
@@ -33,50 +35,70 @@ export function Header() {
           {open && (
             <div className="absolute self-stretch flex flex-col justify-center py-8 gap-8 items-center top-14 right-0 w-60 bg-white h-screen z-100 border-l transition-all duration-300">
               <Link href="/">
-                <Button variant={pathname === "/" ? "default" : "ghost"}>
+                <Button
+                  onClick={() => {
+                    router.push("/");
+                    setOpen(false);
+                  }}
+                  variant={pathname === "/" ? "default" : "ghost"}
+                >
                   Home
                 </Button>
               </Link>
               {session?.user.role === "admin" && (
-                <Link href="/admin">
-                  <Button
-                    variant={
-                      pathname.startsWith("/admin") ? "default" : "ghost"
-                    }
-                  >
-                    Admin
-                  </Button>
-                </Link>
-              )}
-              <Link href="/book">
-                <Button variant={pathname === "/book" ? "default" : "ghost"}>
-                  Book
+                <Button
+                  onClick={() => {
+                    router.push("/admin");
+                    setOpen(false);
+                  }}
+                  variant={pathname.includes("admin") ? "default" : "ghost"}
+                >
+                  Admin
                 </Button>
-              </Link>
+              )}
+
+              <Button
+                onClick={() => {
+                  router.push("/book");
+                  setOpen(false);
+                }}
+                variant={pathname === "/book" ? "default" : "ghost"}
+              >
+                Book
+              </Button>
 
               {session ? (
                 <div className="flex flex-col items-center gap-8">
-                  <Link href="/profile">
-                    <Button>Profile</Button>
-                  </Link>
-                  <Avatar>
-                    {session?.user?.image && (
-                      <AvatarImage
-                        src={session?.user?.image}
-                        alt={session?.user?.name ?? ""}
-                      />
-                    )}
-                    <AvatarFallback>
-                      {session?.user?.name?.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      router.push("/profile");
+                      setOpen(false);
+                    }}
+                  >
+                    <Avatar>
+                      {session?.user?.image && (
+                        <AvatarImage
+                          src={session?.user?.image}
+                          alt={session?.user?.name ?? ""}
+                        />
+                      )}
+                      <AvatarFallback>
+                        {session?.user?.name?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
                 </div>
               ) : (
-                <Link href="/auth">
-                  <Button variant={pathname === "/auth" ? "default" : "ghost"}>
-                    Sign In
-                  </Button>
-                </Link>
+                <Button
+                  onClick={() => {
+                    router.push("/auth");
+                    setOpen(false);
+                  }}
+                  variant={pathname === "/auth" ? "default" : "ghost"}
+                >
+                  Create an account
+                </Button>
               )}
             </div>
           )}

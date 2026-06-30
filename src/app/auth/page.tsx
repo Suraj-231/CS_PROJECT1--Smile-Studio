@@ -35,10 +35,11 @@ export default function AuthPage() {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/profile",
       });
+      redirect("/profile");
     } catch (error) {
       console.log("Error signing in with Google");
+      // toast.error("Error signing in with Google");
     }
   }
 
