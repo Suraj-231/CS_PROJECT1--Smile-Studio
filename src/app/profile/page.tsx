@@ -119,7 +119,7 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between">
                 <h1 className="text-2xl">{session.user.name}</h1>
                 <DropdownMenu>
-                  <DropdownMenuTrigger>
+                  <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="text-muted-foreground">
                       <Settings size={16} />
                     </Button>
@@ -255,7 +255,6 @@ export default function ProfilePage() {
                                   appointment?
                                 </DialogDescription>
                               </DialogHeader>
-
                               <DialogFooter>
                                 <Button
                                   variant="ghost"

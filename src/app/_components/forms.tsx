@@ -43,62 +43,6 @@ import {
 import { Input } from "~/components/ui/input";
 import { Search } from "lucide-react";
 
-const DENTISTS = [
-  {
-    id: 1,
-    name: "Mtume Owino",
-    specialty: "Comprehensive Oral Health & Diagnostics",
-    description:
-      "Dr. Omondi is a dedicated general practitioner who focuses on building a trusted foundation for long-term oral hygiene. Her practice specializes in thorough clinical examinations, advanced digital X-ray diagnostics, cavity prevention, and painless restorative fillings. Known for her calm and thorough approach, she excels at helping anxious patients feel entirely at ease while teaching practical preventative care routines.",
-    image: "",
-  },
-  {
-    id: 2,
-    name: "Dr. Faraj Patel ",
-    specialty: "Root Canal Therapy & Root Canal Retreatment",
-    description:
-      "Dr. Patel is a micro-endodontic specialist focused entirely on saving damaged, decayed, or severely traumatized teeth. By utilizing cutting-edge rotary instruments and precise apex locator technology, he transforms complex root canal therapies into highly efficient, comfortable, and predictable procedures. His clinical precision targets severe internal infections to eliminate constant throbbing pain and preserve natural teeth.",
-    image: "",
-  },
-  {
-    id: 3,
-    name: "Dr. Chloe Mwangi",
-    specialty: "Advanced Surgical Extractions & Impacted Wisdom Teeth",
-    description:
-      "Dr. Mwangi is a highly skilled oral surgeon specializing in the management and surgical removal of deeply impacted teeth, complex bone-grafted extractions, and trauma recovery. Backed by extensive clinical experience, she handles cases where space shortages cause wisdom teeth to trap or partially erupt beneath the gumline. Her structural expertise guarantees smooth surgical execution, minimal recovery periods, and exceptional patient care.",
-    image: "",
-  },
-];
-const SERVICES = [
-  {
-    id: 1,
-    title: "General Cleaning",
-    description:
-      "Routine clinical check-ups, digital X-rays, deep cleanings, and protective fillings to maintain optimal long-term oral hygiene.",
-    completionTime: "1 hour",
-  },
-  {
-    id: 2,
-    title: "Root Canal",
-    description:
-      "Specialized micro-treatments to eliminate internal tooth infections, relieve persistent throbbing pain, and save the natural tooth from extraction.",
-    completionTime: "1 hour 30 mins",
-  },
-  {
-    id: 3,
-    title: "Wisdom Tooth Removal",
-    description:
-      "Advanced surgical removal of damaged, decayed, or deeply trapped impacted wisdom teeth to prevent gum infections and protect neighboring teeth.",
-    completionTime: "2 hours",
-  },
-  {
-    id: 4,
-    title: "Dentures",
-    description:
-      "Premium custom-fitted full or partial dental prosthetics designed to restore natural speech, chewing function, and a complete smile after tooth loss.",
-    completionTime: "2 hours 30 mins",
-  },
-];
 const TIMES = [
   { value: "08:30:00", label: "08:30 AM" },
   { value: "09:00:00", label: "09:00 AM" },
@@ -131,48 +75,65 @@ export function ServiceForm() {
   const [query, setQuery] = useState("");
   const [filteredServices, setFilteredServices] = useState<ServiceType[]>([]);
   const { data: services, isLoading } = api.services.getAll.useQuery();
+  const book = useBook();
+
   useEffect(() => {
     if (query && services) {
-      const filteredServices = services.filter((service) =>
-        service.name.toLowerCase().includes(query.toLowerCase()),
+      setFilteredServices(
+        services.filter((s) =>
+          s.name.toLowerCase().includes(query.toLowerCase()),
+        ),
       );
-      setFilteredServices(filteredServices);
-    } else if (services) {
-      setFilteredServices(services);
     } else {
-      setFilteredServices([]);
+      setFilteredServices(services ?? []);
     }
   }, [query, services]);
 
   return (
-    <div className="px-10 grid gap-4">
-      <p className="text-muted-foreground text-center">Select a service.</p>
-      <InputGroup className="px-5">
+    <div className="flex flex-col gap-4 px-10">
+      {/* Header */}
+      <div className="text-center">
+        {/*<p className="text-sm text-muted-foreground">
+          Choose the service you need. You can search by name.
+        </p>*/}
+        {book.service && (
+          <p className="mt-1 text-xs font-medium text-primary">
+            ✓ {book.service.name} selected
+          </p>
+        )}
+      </div>
+
+      {/* Search */}
+      {/*<InputGroup>
         <InputGroupAddon>
-          <Search />
+          <Search className="h-4 w-4" />
         </InputGroupAddon>
         <InputGroupInput
+          value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search for a service..."
         />
         <InputGroupAddon align="inline-end">
-          {filteredServices.length} services
+          <span className="text-xs text-muted-foreground">
+            {filteredServices.length} found
+          </span>
         </InputGroupAddon>
-      </InputGroup>
+      </InputGroup>*/}
 
-      <div className="flex flex-col px-4 gap-4">
+      {/* Grid of cards */}
+      <div className="grid gap-3 sm:grid-cols-2">
         {isLoading ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="p-6 rounded-lg w-full" />
+          Array.from({ length: 4 }, (_, i) => i + 1).map((i) => (
+            <Skeleton key={i} className="h-28 w-full rounded-lg" />
           ))
         ) : filteredServices.length > 0 ? (
           filteredServices.map((service) => (
             <ServiceCard key={service.id} props={service} />
           ))
         ) : (
-          <div className="text-center text-muted-foreground">
-            No services found.
-          </div>
+          <p className="col-span-2 py-6 text-center text-sm text-muted-foreground">
+            No services match your search.
+          </p>
         )}
       </div>
     </div>
@@ -216,7 +177,7 @@ export function CalendarForm() {
     isError: bookingsError,
   } = api.apps.getAll.useQuery();
   const bookingsByDentist = api.apps.getByDentistId.useQuery({
-    id: book.dentist.id,
+    id: book.dentist?.id ?? 0,
   });
   return (
     <div>
@@ -313,7 +274,9 @@ export function ConfirmationForm() {
           }}
         />
       ) : (
-        <div className="col-span-2">You have not selected a service.</div>
+        <div className="col-span-2 border-destructive bg-destructive/20 ">
+          You have not selected a service.
+        </div>
       )}
       {book.date ? (
         <DetailCard
@@ -324,7 +287,9 @@ export function ConfirmationForm() {
           }}
         />
       ) : (
-        <div className="col-span-2">You have not selected a date.</div>
+        <div className="col-span-2 border-destructive bg-destructive/20 ">
+          You have not selected a date.
+        </div>
       )}
       {book.startTime ? (
         <DetailCard
@@ -335,7 +300,9 @@ export function ConfirmationForm() {
           }}
         />
       ) : (
-        <div className="col-span-2">You have not selected a start time.</div>
+        <div className="col-span-2 border-destructive bg-destructive/20 ">
+          You have not selected a start time.
+        </div>
       )}
       {book.dentist ? (
         <DetailCard
@@ -346,7 +313,9 @@ export function ConfirmationForm() {
           }}
         />
       ) : (
-        <div className="col-span-2">You have not selected a dentist.</div>
+        <div className="col-span-2 border-destructive bg-destructive/20 ">
+          You have not selected a dentist.
+        </div>
       )}
     </div>
   );
@@ -836,16 +805,16 @@ export function EditAppointmentForm({
   const { data: allApps, isLoading: allAppsL } = api.apps.getAll.useQuery();
   const bookingsByDentist = api.apps.getByDentistId.useQuery(
     {
-      id: book.dentist.id,
+      id: book.dentist?.id ?? 0,
     },
-    { enabled: !!book.dentist.id },
+    { enabled: !!book.dentist?.id },
   );
   const { data: dentists, isLoading: dentsistL } =
     api.dentists.getAll.useQuery();
   const { data: services, isLoading: servicesL } =
     api.services.getAll.useQuery();
   const { data: prevApp, isLoading: appL } = api.apps.getById.useQuery({
-    appointmentId: parseInt(appointmentId),
+    appointmentId: appointmentId,
   });
 
   if (prevApp) {
@@ -904,7 +873,7 @@ export function EditAppointmentForm({
                 name: value,
               })
             }
-            value={book.dentist.name || app?.dentists.name}
+            value={book.dentist?.name || app?.dentists.name}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select a dentist" />

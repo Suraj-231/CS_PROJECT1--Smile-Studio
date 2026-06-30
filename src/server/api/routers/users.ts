@@ -5,7 +5,7 @@ import {
   createTRPCRouter,
   publicProcedure,
 } from "~/server/api/trpc";
-import { user } from "~/server/db/schema";
+import { appointments, user } from "~/server/db/schema";
 
 export const usersRouter = createTRPCRouter({
   getWithSearch: publicProcedure
@@ -52,4 +52,46 @@ export const usersRouter = createTRPCRouter({
   getCount: adminProcedure.query(async ({ ctx }) => {
     return await ctx.db.$count(user);
   }),
+
+  deleteUser: adminProcedure
+    .input(z.object({ userId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      console.log(`Deleting appointment data for user ${input.userId}`);
+      await ctx.db
+        .delete(appointments)
+        .where(eq(appointments.userId, input.userId));
+      console.log(`Deleting User: ${input.userId}`);
+      await ctx.db.delete(user).where(eq(user.id, input.userId));
+    }),
+
+  getUserDataByUserId: adminProcedure
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const data = await ctx.db
+        .select({
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+            role: user.role,
+            // banned: user.banned,
+            // banReason: user.banReason,
+            // banExpires: user.banExpires,
+          },
+          appointments: {
+            id: appointments.id,
+            serviceId: appointments.service,
+            date: appointments.date,
+            startTime: appointments.startTime,
+            createdAt: appointments.createdAt,
+            updatedAt: appointments.updatedAt,
+          },
+        })
+        .from(user)
+        .where(eq(user.id, input.userId))
+        .innerJoin(appointments, eq(appointments.userId, user.id));
+      return data;
+    }),
 });

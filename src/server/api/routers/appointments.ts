@@ -265,17 +265,22 @@ export const appsRouter = createTRPCRouter({
           name: z.string(),
         }),
         date: z.string().datetime().pipe(z.coerce.date()),
-        startTime: z.string(), // e.g., "10:30:00"
-        service: z.object({
-          id: z.number(),
-          priority: z.number(), // Used as the base number of days to wait
-          name: z.string(),
-        }),
+        startTime: z.string(),
+        service: z
+          .object({
+            id: z.number(),
+            priority: z.number().nullable(),
+            name: z.string(),
+          })
+          .nullable(),
       }),
     )
     .query(async ({ ctx, input }) => {
       const { dentist, date, startTime, service } = input;
-
+      if (!service || service.priority === null) {
+        console.log("No service provided", service);
+        return null;
+      }
       const baseDate = new Date(date);
       if (isNaN(baseDate.getTime())) {
         throw new TRPCError({
@@ -363,14 +368,14 @@ export const appsRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      if (input.id) {
-        const data = await ctx.db.query.appointments.findMany({
-          where: (appointments, { eq }) => eq(appointments.dentistId, input.id),
-        });
-        return data ?? null;
-      } else {
-        console.log("Dentist ID not provided.");
+      if (input.id === 0) {
+        console.log("Dentist ID is 0 not provided.");
+        return null;
       }
+      const data = await ctx.db.query.appointments.findMany({
+        where: (appointments, { eq }) => eq(appointments.dentistId, input.id),
+      });
+      return data ?? null;
     }),
 
   getAllByMonthAndYear: adminProcedure

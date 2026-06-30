@@ -1,21 +1,25 @@
 import { create } from "zustand";
 
 interface BookState {
-  dentist: { id: number; name: string };
+  dentist: { id: number; name: string } | null;
   date: Date | undefined;
   startTime: string | null;
-  service: { id: number; priority: number; name: string } | null;
+  service: { id: number; priority: number | null; name: string } | null;
 }
 
 interface BookAction {
   setDentist: (dentist: { id: number; name: string }) => void;
   setDate: (date: Date | undefined) => void;
   setStartTime: (startTime: string | null) => void;
-  setService: (service: { id: number; priority: number; name: string }) => void;
+  setService: (service: {
+    id: number;
+    priority: number | null;
+    name: string;
+  }) => void;
 }
 
 export const useBook = create<BookState & BookAction>((set) => ({
-  dentist: { id: 0, name: "" },
+  dentist: null,
   date: undefined,
   startTime: null,
   service: null,

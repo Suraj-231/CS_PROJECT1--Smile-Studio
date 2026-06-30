@@ -24,6 +24,7 @@ export default function AuthPage() {
     try {
       await authClient.signIn.magicLink({
         email: emailInput,
+        callbackURL: "/profile",
       });
     } catch (error) {
       console.error(error);

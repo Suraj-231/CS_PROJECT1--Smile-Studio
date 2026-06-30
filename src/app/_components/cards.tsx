@@ -1,7 +1,6 @@
 import Image from "next/image";
-import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
-import { ChevronRight } from "lucide-react";
+import { CheckCircle, ChevronRight, Clock } from "lucide-react";
 import Link from "next/link";
 import { useBook } from "../hooks/use-book";
 
@@ -60,7 +59,10 @@ export function ServiceCard(props: ServiceCardProps) {
         `}
     >
       <div className="p-4  rounded-b-md">
-        <h2 className="text-xl font-bold">{name}</h2>
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          {name}
+          {book.service?.id === id && <CheckCircle className="" />}
+        </h2>
         <p className={"text-sm "}>Estimated Time: {estimatedTime}</p>
         <p
           className={`text-sm ${book.service?.id === id ? "text-white" : "text-muted-foreground"}`}

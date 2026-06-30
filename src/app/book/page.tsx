@@ -3,7 +3,7 @@ import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { toast } from "sonner";
 import { api } from "~/trpc/react";
-import { useState } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import { FollowUp } from "../_components/follow-up";
 import {
   ServiceForm,
@@ -45,12 +45,24 @@ function FollowUpSkeleton() {
   );
 }
 
+const STEPS = ["Service", "Dentist", "Schedule", "Confirm"] as const;
+
 export default function BookPage() {
   const { data: session } = authClient.useSession();
   const [loading, setLoading] = useState(false);
   const [followUpLoading, setFollowUpLoading] = useState(false);
   const book = useBook();
   const [form, setForm] = useState(0);
+  const buttonGroupRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (book.service ?? book.dentist?.id ?? book.date ?? book.startTime) {
+      buttonGroupRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
+    }
+  }, [book.service, book.dentist, book.date, book.startTime]);
 
   const createAppointment = api.apps.create.useMutation({
     onSuccess: () => {
@@ -62,18 +74,34 @@ export default function BookPage() {
     },
     onError: (error) => {
       console.log(error);
-      toast.error("Failed to confirm booking. Please try again.", {
-        description: error.message,
-      });
+      toast.error(error.message);
       setLoading(false);
     },
   });
 
-  if (!session) {
-    redirect("/auth");
-    return null;
-  }
+  // if (!session) {
+  //   redirect("/auth");
+  // }
 
+  function checkFormStatus() {
+    if (form === 0 && !book.service) {
+      toast.error("Please select a service before proceeding.");
+      setForm(0);
+      return;
+    }
+    if (form === 1 && !book.dentist) {
+      toast.error("Please select a dentist before proceeding.");
+      setForm(1);
+      return;
+    }
+    if (form === 2 && (!book.date || !book.startTime)) {
+      toast.error("Please select a date and time before proceeding.");
+      setForm(2);
+      return;
+    }
+
+    setForm(form + 1);
+  }
   async function confirmAppointment() {
     if (!book.dentist || !book.date || !book.startTime || !book.service) {
       toast.error("Please fill out all fields before confirming.");
@@ -114,15 +142,17 @@ export default function BookPage() {
              * onReady, which clears followUpLoading and reveals the form.
              */}
             <div className={followUpLoading ? "hidden" : ""}>
-              <FollowUp
-                prevApp={{
-                  dentist: book.dentist,
-                  date: book.date,
-                  startTime: book.startTime,
-                  service: book.service,
-                }}
-                onReady={() => setFollowUpLoading(false)}
-              />
+              {book.service.priority && (
+                <FollowUp
+                  prevApp={{
+                    dentist: book.dentist,
+                    date: book.date,
+                    startTime: book.startTime,
+                    service: book.service,
+                  }}
+                  onReady={() => setFollowUpLoading(false)}
+                />
+              )}
             </div>
           </>
         );
@@ -132,65 +162,92 @@ export default function BookPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center gap-8 p-4">
-      <div className="flex flex-col items-center gap-4">
-        <h1 className="text-primary text-xl">
-          {form === 4 ? "You're all set!" : "Book your appointment"}
-        </h1>
-        {form === 4 && (
-          <p className="text-sm text-muted-foreground">
-            Your appointment has been booked. See the follow-up suggestion
-            below.
-          </p>
-        )}
-      </div>
+    <div className="min-h-screen p-6 pb-28">
+      <div className="mx-auto flex max-w-2xl flex-col gap-8">
+        {/* Page header */}
+        <div className="text-center">
+          <h1 className="text-xl font-semibold text-primary">
+            {form === 4 ? "You're all set!" : "Book your appointment"}
+          </h1>
+          {form === 4 && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              Your appointment has been booked. See the follow-up suggestion
+              below.
+            </p>
+          )}
+        </div>
 
-      <div className="flex flex-col items-center gap-4">
-        <div>{renderForm()}</div>
-        {/* Hide the stepper nav once we reach the follow-up step */}
+        {/* Step indicator */}
         {form < 4 && (
-          <div className="flex w-full items-center justify-between gap-4 pb-4">
-            <div className="flex items-center gap-2">
-              {Array.from({ length: form + 1 }, (_, i) => i + 1).map((step) => (
-                <div key={step} className="h-2 w-4 rounded-full bg-primary" />
-              ))}
-            </div>
-            <ButtonGroup>
-              <Button
-                variant={"outline"}
-                onClick={() => setForm(form - 1)}
-                disabled={form === 0}
-              >
-                <ChevronLeft />
-              </Button>
-              {form === 3 ? (
-                <Button
-                  variant={"default"}
-                  onClick={confirmAppointment}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    "Confirming..."
-                  ) : (
-                    <>
-                      Confirm
-                      <CheckCircle />
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <Button
-                  variant={"outline"}
-                  onClick={() => setForm(form + 1)}
-                  disabled={form === 3}
-                >
-                  <ChevronRight />
-                </Button>
-              )}
-            </ButtonGroup>
+          <div className="flex items-center justify-center">
+            {STEPS.map((label, i) => (
+              <Fragment key={label}>
+                <div className="flex flex-col items-center gap-1.5">
+                  <div
+                    className={`h-1.5 w-10 rounded-sm transition-colors duration-300 ${
+                      i <= form ? "bg-primary" : "bg-muted"
+                    }`}
+                  />
+                  <span
+                    className={`text-xs transition-colors duration-300 ${
+                      i === form
+                        ? "font-medium text-primary"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {label}
+                  </span>
+                </div>
+                {i < STEPS.length - 1 && (
+                  <div
+                    className={`mb-4 h-px w-8 transition-colors duration-300 ${
+                      i < form ? "bg-primary" : "bg-border"
+                    }`}
+                  />
+                )}
+              </Fragment>
+            ))}
           </div>
         )}
+
+        {/* Form content */}
+        <div>{renderForm()}</div>
       </div>
+
+      {/* ButtonGroup — fixed bottom-right */}
+      {form < 4 && (
+        <div ref={buttonGroupRef} className="fixed bottom-6 right-6 z-10">
+          <ButtonGroup>
+            <Button
+              variant="outline"
+              onClick={() => setForm(form - 1)}
+              disabled={form === 0}
+            >
+              <ChevronLeft />
+            </Button>
+            {form === 3 ? (
+              <Button
+                variant="default"
+                onClick={confirmAppointment}
+                disabled={loading}
+              >
+                {loading ? (
+                  "Confirming..."
+                ) : (
+                  <>
+                    Confirm
+                    <CheckCircle />
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={checkFormStatus}>
+                <ChevronRight />
+              </Button>
+            )}
+          </ButtonGroup>
+        </div>
+      )}
     </div>
   );
 }

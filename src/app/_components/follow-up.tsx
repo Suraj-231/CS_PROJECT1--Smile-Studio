@@ -18,7 +18,7 @@ interface FollowUpProps {
     startTime: string;
     service: {
       id: number;
-      priority: number;
+      priority: number | null;
       name: string;
     };
   };
@@ -43,18 +43,21 @@ export function FollowUp({ prevApp, onReady }: FollowUpProps) {
     dentist,
     date: date.toISOString(),
     startTime,
-    service,
+    service: {
+      id: service.id,
+      priority: service.priority ?? 0,
+      name: service.name,
+    },
   });
 
   async function handleConfirmFollowUp() {
-    if (followUp) {
-      await createFollowUp.mutateAsync({
-        dentist,
-        date: date.toISOString(),
-        startTime,
-        service,
-      });
-    }
+    if (!followUp || !service) return;
+    await createFollowUp.mutateAsync({
+      dentist,
+      date: date.toISOString(),
+      startTime,
+      service,
+    });
   }
 
   // Signal the parent once the query settles so it can swap the skeleton out
@@ -156,7 +159,7 @@ export function FollowUp({ prevApp, onReady }: FollowUpProps) {
           <Button variant="outline">Skip for now</Button>
         </Link>
         <Link href="/profile">
-          <Button variant="default">
+          <Button onClick={handleConfirmFollowUp} variant="default">
             <CalendarCheck className="h-4 w-4" />
             Confirm follow-up
           </Button>
