@@ -13,7 +13,7 @@ export const dentistRouter = createTRPCRouter({
       z.object({
         name: z.string().min(1),
         imageUrl: z.string().optional(),
-        description: z.string().min(1).max(500).optional(),
+        description: z.string().min(1).max(150).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

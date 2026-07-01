@@ -34,10 +34,13 @@ export const appsRouter = createTRPCRouter({
             and(
               eq(appointments.userId, ctx.session.user.id),
               eq(appointments.date, input.date),
+              eq(appointments.dentistId, input.dentist.id),
             ),
         });
       if (existingAppointmentOnDate) {
-        throw new Error("You have already booked an appointment on this date.");
+        throw new Error(
+          "You have already booked an appointment with the same dentist on this date.",
+        );
       }
       const existingAppointment = await ctx.db.query.appointments.findFirst({
         where: (appointments, { and, eq }) =>
@@ -364,17 +367,29 @@ export const appsRouter = createTRPCRouter({
   getByDentistId: publicProcedure
     .input(
       z.object({
-        id: z.number(),
+        id: z.number().nullable().optional(),
+        date: z.string().datetime().pipe(z.coerce.date()).optional().nullable(),
       }),
     )
     .query(async ({ ctx, input }) => {
-      if (input.id === 0) {
-        console.log("Dentist ID is 0 not provided.");
+      if (!input.id || input.date === undefined || input.date === null) {
         return null;
       }
-      const data = await ctx.db.query.appointments.findMany({
-        where: (appointments, { eq }) => eq(appointments.dentistId, input.id),
-      });
+      const unulledInput: number = input.id;
+
+      const data = await ctx.db
+        .select({
+          startTime: appointments.startTime,
+          date: appointments.date,
+        })
+        .from(appointments)
+        .where(
+          and(
+            eq(appointments.dentistId, unulledInput),
+            eq(appointments.date, input.date),
+          ),
+        );
+
       return data ?? null;
     }),
 

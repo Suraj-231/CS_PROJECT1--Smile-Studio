@@ -170,15 +170,21 @@ export function DentistForm() {
 
 export function CalendarForm() {
   const book = useBook();
-
+  const [filteredTimes, setFilteredTimes] = useState<Times[]>([]);
   const {
     data: bookings,
     isLoading: bookingsloading,
     isError: bookingsError,
   } = api.apps.getAll.useQuery();
-  const bookingsByDentist = api.apps.getByDentistId.useQuery({
-    id: book.dentist?.id ?? 0,
-  });
+
+  const bookingsByDentist = api.apps.getByDentistId.useQuery(
+    {
+      id: book.dentist?.id,
+      date: book.date?.toISOString(),
+    },
+    { enabled: !!book.date },
+  );
+
   return (
     <div>
       <p className="text-muted-foreground text-center">
@@ -191,65 +197,30 @@ export function CalendarForm() {
           selected={book.date}
           onSelect={(value) => book.setDate(value)}
           modifiers={{
-            booked: bookings?.map((b) => new Date(b.date)),
+            booked: bookingsByDentist.data?.map((b) => b.date),
           }}
-          modifiersClassNames={
-            {
-              // booked: "border rounded-md",
-            }
-          }
+          modifiersClassNames={{
+            booked: "bg-muted",
+          }}
           disabled={[{ before: new Date() }, { dayOfWeek: [0, 6] }]}
           className="rounded-lg mx-auto "
         />
         <div className="grid grid-auto-fit items-center mt-5">
-          {book.date?.toLocaleDateString() ===
-            new Date().toLocaleDateString() &&
-          (new Date().getHours() < 8 || new Date().getHours() > 17) ? (
-            <Alert className="text-center text-red-500">
-              <Ban />
-              <AlertTitle>
-                You cannot book an appointment for today as our working hours
-                are from 8:30 AM to 5:00 PM.
-              </AlertTitle>
-            </Alert>
-          ) : null}
           <div className="grid grid-cols-3 gap-2">
-            {book.date?.toLocaleDateString() === new Date().toLocaleDateString()
-              ? TIMES.filter(
-                  (t) =>
-                    !bookingsByDentist?.data?.some(
-                      (b) => b.startTime === t.value,
-                    ),
-                )
-                  .filter(
-                    (t) =>
-                      parseInt(t.value.substring(0, 2)) > new Date().getHours(),
-                  )
-                  .map((t, i) => (
-                    <Button
-                      onClick={() => book.setStartTime(t.value)}
-                      key={i}
-                      variant="outline"
-                      className={`${book.startTime === t.value ? "bg-primary text-white" : "bg-white"} mr-2 cursor-pointer shadow-none hover:border-primary hover:bg-primary hover:text-white mb-2`}
-                    >
-                      {t.label}
-                    </Button>
-                  ))
-              : TIMES.filter(
-                  (t) =>
-                    !bookingsByDentist?.data?.some(
-                      (b) => b.startTime === t.value,
-                    ),
-                ).map((t, i) => (
-                  <Button
-                    onClick={() => book.setStartTime(t.value)}
-                    key={i}
-                    variant="outline"
-                    className={`${book.startTime === t.value ? "bg-primary text-white" : "bg-white"} mr-2 cursor-pointer shadow-none hover:border-primary hover:bg-primary hover:text-white mb-2`}
-                  >
-                    {t.label}
-                  </Button>
-                ))}
+            {TIMES.filter(
+              (t) =>
+                !bookingsByDentist.data
+                  ?.map((b) => b.startTime)
+                  .includes(t.value),
+            ).map((t) => (
+              <Button
+                variant={book.startTime === t.value ? "default" : "outline"}
+                onClick={() => book.setStartTime(t.value)}
+                key={t.value}
+              >
+                {t.label}
+              </Button>
+            ))}
           </div>
         </div>
       </div>
@@ -599,10 +570,10 @@ export function AddServiceForm() {
               }
             />
           </div>
-          <div>
-            <span>Estimated Time</span>
 
-            <div className="flex gap-4">
+          <div className="flex gap-4">
+            <div className="grid">
+              <label>Priority</label>
               <Select
                 value={formData.priority}
                 onValueChange={(value) =>
@@ -620,6 +591,9 @@ export function AddServiceForm() {
                   <SelectItem value="365">1 year</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid">
+              <label>Estimated Time</label>
               <Select
                 value={formData.estimatedTime}
                 onValueChange={(value) =>

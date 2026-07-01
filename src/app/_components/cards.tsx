@@ -67,7 +67,7 @@ export function ServiceCard(props: ServiceCardProps) {
         <p
           className={`text-sm ${book.service?.id === id ? "text-white" : "text-muted-foreground"}`}
         >
-          {description}
+          {description.slice(0, 100)}
         </p>
       </div>
     </div>

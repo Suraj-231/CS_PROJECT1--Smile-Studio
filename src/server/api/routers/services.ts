@@ -14,7 +14,7 @@ export const servicesRouter = createTRPCRouter({
         name: z.string().min(1),
         priority: z.number(),
         estimatedTime: z.string().optional(),
-        description: z.string().min(1).max(500).optional(),
+        description: z.string().min(1).max(100).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

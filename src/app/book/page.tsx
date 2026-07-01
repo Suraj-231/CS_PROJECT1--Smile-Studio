@@ -142,17 +142,15 @@ export default function BookPage() {
              * onReady, which clears followUpLoading and reveals the form.
              */}
             <div className={followUpLoading ? "hidden" : ""}>
-              {book.service.priority && (
-                <FollowUp
-                  prevApp={{
-                    dentist: book.dentist,
-                    date: book.date,
-                    startTime: book.startTime,
-                    service: book.service,
-                  }}
-                  onReady={() => setFollowUpLoading(false)}
-                />
-              )}
+              <FollowUp
+                prevApp={{
+                  dentist: book.dentist,
+                  date: book.date,
+                  startTime: book.startTime,
+                  service: book.service,
+                }}
+                onReady={() => setFollowUpLoading(false)}
+              />
             </div>
           </>
         );
@@ -219,7 +217,7 @@ export default function BookPage() {
         <div ref={buttonGroupRef} className="fixed bottom-6 right-6 z-10">
           <ButtonGroup>
             <Button
-              variant="outline"
+              className="p-6"
               onClick={() => setForm(form - 1)}
               disabled={form === 0}
             >
@@ -227,7 +225,7 @@ export default function BookPage() {
             </Button>
             {form === 3 ? (
               <Button
-                variant="default"
+                className="p-6"
                 onClick={confirmAppointment}
                 disabled={loading}
               >
@@ -241,7 +239,7 @@ export default function BookPage() {
                 )}
               </Button>
             ) : (
-              <Button variant="outline" onClick={checkFormStatus}>
+              <Button className="p-6" onClick={checkFormStatus}>
                 <ChevronRight />
               </Button>
             )}

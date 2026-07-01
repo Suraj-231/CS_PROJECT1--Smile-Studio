@@ -367,6 +367,7 @@ export default function ProfilePage() {
                                         id: selectedRescheduledDate.appointmentId,
                                         date: selectedRescheduledDate.date,
                                       });
+                                      utils.apps.getForUser.invalidate();
                                     }}
                                   >
                                     Confirm
