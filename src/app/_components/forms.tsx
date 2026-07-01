@@ -207,20 +207,24 @@ export function CalendarForm() {
         />
         <div className="grid grid-auto-fit items-center mt-5">
           <div className="grid grid-cols-3 gap-2">
-            {TIMES.filter(
-              (t) =>
-                !bookingsByDentist.data
-                  ?.map((b) => b.startTime)
-                  .includes(t.value),
-            ).map((t) => (
-              <Button
-                variant={book.startTime === t.value ? "default" : "outline"}
-                onClick={() => book.setStartTime(t.value)}
-                key={t.value}
-              >
-                {t.label}
-              </Button>
-            ))}
+            {bookingsByDentist.isLoading
+              ? Array.from({ length: TIMES.length }).map((_, i) => (
+                  <Skeleton key={i} className="w-20 rounded-full p-4 " />
+                ))
+              : TIMES.filter(
+                  (t) =>
+                    !bookingsByDentist.data
+                      ?.map((b) => b.startTime)
+                      .includes(t.value),
+                ).map((t) => (
+                  <Button
+                    variant={book.startTime === t.value ? "default" : "outline"}
+                    onClick={() => book.setStartTime(t.value)}
+                    key={t.value}
+                  >
+                    {t.label}
+                  </Button>
+                ))}
           </div>
         </div>
       </div>
