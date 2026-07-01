@@ -4,7 +4,9 @@ import { env } from "~/env";
 import { db } from "~/server/db";
 import { admin, magicLink } from "better-auth/plugins";
 
-import { resendMagicLink } from "../resend/send-email";
+import { Resend } from "resend";
+
+const resend = new Resend("re_8idkagFB_KAngjFMofa6JARektyzTzxos");
 
 export const auth = betterAuth({
   baseURL: "http://localhost:3000", //env.FRONTEND_URL ??
@@ -18,12 +20,18 @@ export const auth = betterAuth({
       sendMagicLink: async ({ email, token, url, metadata }, ctx) => {
         console.log("[Better-Auth]: DATA", { email, token, url, metadata });
         try {
-          const emailResponse = await resendMagicLink(
-            email,
-            token,
-            url,
-            metadata,
-          );
+          const { data, error } = await resend.emails.send({
+            from: "Dental Clinic <noreply@singularity.co.ke>",
+            to: [email],
+            subject: "Magic Link",
+            html: `
+              <p>Your magic link is ready to use!</p>
+              <p><a href="${url}">Click here to log in</a></p>
+            `,
+          });
+          if (error) {
+            console.log("RESEND ERROR", error);
+          }
         } catch (error) {
           console.error(error);
         }

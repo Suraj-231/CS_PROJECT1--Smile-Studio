@@ -70,6 +70,7 @@ export default function BookPage() {
       setLoading(false);
       // Show the skeleton immediately while the follow-up query warms up
       setFollowUpLoading(true);
+      book.clear();
       setForm(4);
     },
     onError: (error) => {

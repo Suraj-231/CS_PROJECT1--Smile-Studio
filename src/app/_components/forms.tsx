@@ -170,7 +170,7 @@ export function DentistForm() {
 
 export function CalendarForm() {
   const book = useBook();
-  const [filteredTimes, setFilteredTimes] = useState<Times[]>([]);
+
   const {
     data: bookings,
     isLoading: bookingsloading,

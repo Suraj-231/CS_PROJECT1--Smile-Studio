@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { Mail } from "lucide-react";
 export default function AuthPage() {
   const [emailInput, setEmailInput] = useState("");
+  const [loading, setLoading] = useState(false);
   const { data: session } = authClient.useSession();
   const [form, setForm] = useState<"signUp" | "signIn">("signUp");
   function renderForm() {
@@ -21,6 +22,7 @@ export default function AuthPage() {
   }
 
   async function handleMagicLinkSignIn() {
+    setLoading(true);
     try {
       await authClient.signIn.magicLink({
         email: emailInput,
@@ -28,6 +30,8 @@ export default function AuthPage() {
       });
     } catch (error) {
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -62,39 +66,22 @@ export default function AuthPage() {
           className="w-full sm:rounded-r-none py-6 w-[300px]"
         />
         <Button
+          disabled={loading}
           className="sm:rounded-l-none py-6 "
           onClick={handleMagicLinkSignIn}
           variant="default"
         >
-          <Mail />
-          Send Magic Link
+          {loading ? (
+            "Sending..."
+          ) : (
+            <>
+              <Mail />
+              Send Magic Link
+            </>
+          )}
         </Button>
       </div>
 
-      {/*{renderForm()}*/}
-      <div>
-        {/*{form === "signUp" ? (
-          <p>
-            Already have an account?{" "}
-            <span
-              onClick={() => setForm("signIn")}
-              className="text-primary cursor-pointer underline"
-            >
-              Sign in
-            </span>
-          </p>
-        ) : (
-          <p>
-            Already have an account?{" "}
-            <span
-              onClick={() => setForm("signUp")}
-              className="text-primary cursor-pointer underline"
-            >
-              Sign in
-            </span>
-          </p>
-        )}*/}
-      </div>
       <p>Or</p>
       <Button onClick={handleGoogleSignIn} variant="outline">
         <SiGoogle />

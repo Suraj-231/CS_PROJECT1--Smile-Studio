@@ -41,7 +41,7 @@ export async function sendConfirmationEmail(details: {
 
   // 3. Dispatch directly through Resend
   await resend.emails.send({
-    from: "Dental Clinic <widgetflow-email.singularity.co.ke>",
+    from: "Dental Clinic <noreply@widgetflow-email.singularity.co.ke>",
     to: [email],
     subject: `Confirmed: Appointment for ${serviceName}`,
     react: AppointmentConfirmationEmail({
@@ -71,11 +71,9 @@ export async function resendMagicLink(
     from: "Dental Clinic <widgetflow-email.singularity.co.ke>",
     to: [email],
     subject: "Magic Link",
-    react: MagicLinkEmailTemplate({
-      email,
-      token,
-      url,
-      metadata,
-    }),
+    react: `
+      <p>Your magic link is ready to use!</p>
+      <p><a href="${url}">Click here to log in</a></p>
+    `,
   });
 }

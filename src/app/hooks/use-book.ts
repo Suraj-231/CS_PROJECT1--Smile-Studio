@@ -11,6 +11,7 @@ interface BookAction {
   setDentist: (dentist: { id: number; name: string }) => void;
   setDate: (date: Date | undefined) => void;
   setStartTime: (startTime: string | null) => void;
+  clear: () => void;
   setService: (service: {
     id: number;
     priority: number | null;
@@ -27,4 +28,11 @@ export const useBook = create<BookState & BookAction>((set) => ({
   setDate: (date) => set(() => ({ date })),
   setStartTime: (startTime) => set(() => ({ startTime })),
   setService: (service) => set(() => ({ service })),
+  clear: () =>
+    set(() => ({
+      dentist: null,
+      date: undefined,
+      startTime: null,
+      service: null,
+    })),
 }));
