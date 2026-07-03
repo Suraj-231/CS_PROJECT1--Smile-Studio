@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useBook } from "../hooks/use-book";
 import { Calendar } from "~/components/ui/calendar";
 import { uploadFilesFromServer } from "~/lib/uploadthing";
@@ -42,6 +42,7 @@ import {
 } from "~/components/ui/input-group";
 import { Input } from "~/components/ui/input";
 import { Search } from "lucide-react";
+import { TimeSlotPicker } from "./time-slot-picker";
 
 const TIMES = [
   { value: "08:30:00", label: "08:30 AM" },
@@ -63,6 +64,25 @@ const TIMES = [
   { value: "16:30:00", label: "04:30 PM" },
   { value: "17:00:00", label: "05:00 PM" },
 ];
+
+function parseTimeToMinutes(time: string) {
+  const [hour, minute] = time.split(":").map((part) => Number(part));
+  return hour * 60 + minute;
+}
+
+function parseEstimatedTimeToMinutes(estimatedTime?: string | null) {
+  if (!estimatedTime) return 30;
+
+  const normalized = estimatedTime.toLowerCase().trim();
+  const hourMatch = normalized.match(/(\d+)\s*h(?:our)?s?/);
+  const minuteMatch = normalized.match(/(\d+)\s*m(?:in(?:ute)?s?)?/);
+
+  const hours = hourMatch ? Number(hourMatch[1]) : 0;
+  const minutes = minuteMatch ? Number(minuteMatch[1]) : 0;
+  const total = hours * 60 + minutes;
+
+  return total > 0 ? total : 30;
+}
 
 interface ServiceType {
   id: number;
@@ -171,19 +191,35 @@ export function DentistForm() {
 export function CalendarForm() {
   const book = useBook();
 
-  const {
-    data: bookings,
-    isLoading: bookingsloading,
-    isError: bookingsError,
-  } = api.apps.getAll.useQuery();
-
   const bookingsByDentist = api.apps.getByDentistId.useQuery(
     {
-      id: book.dentist?.id,
+      dentistId: book.dentist?.id,
       date: book.date?.toISOString(),
     },
-    { enabled: !!book.date },
+    { enabled: !!book.date && !!book.dentist?.id },
   );
+
+  const blockedTimes = useMemo(() => {
+    const blocked = new Set<string>();
+    const existingApps = bookingsByDentist.data ?? [];
+
+    for (const app of existingApps) {
+      const startMinutes = parseTimeToMinutes(app.startTime);
+      const durationMinutes = parseEstimatedTimeToMinutes(
+        app.service?.estimatedTime.toString(),
+      );
+      const endMinutes = startMinutes + durationMinutes;
+
+      for (const slot of TIMES) {
+        const slotMinutes = parseTimeToMinutes(slot.value);
+        if (slotMinutes >= startMinutes && slotMinutes < endMinutes) {
+          blocked.add(slot.value);
+        }
+      }
+    }
+
+    return blocked;
+  }, [bookingsByDentist.data]);
 
   return (
     <div>
@@ -195,7 +231,10 @@ export function CalendarForm() {
           mode="single"
           defaultMonth={book.date}
           selected={book.date}
-          onSelect={(value) => book.setDate(value)}
+          onSelect={(value) => {
+            book.setDate(value);
+            book.setStartTime(null);
+          }}
           modifiers={{
             booked: bookingsByDentist.data?.map((b) => b.date),
           }}
@@ -211,12 +250,7 @@ export function CalendarForm() {
               ? Array.from({ length: TIMES.length }).map((_, i) => (
                   <Skeleton key={i} className="w-20 rounded-full p-4 " />
                 ))
-              : TIMES.filter(
-                  (t) =>
-                    !bookingsByDentist.data
-                      ?.map((b) => b.startTime)
-                      .includes(t.value),
-                ).map((t) => (
+              : TIMES.filter((t) => !blockedTimes.has(t.value)).map((t) => (
                   <Button
                     variant={book.startTime === t.value ? "default" : "outline"}
                     onClick={() => book.setStartTime(t.value)}
@@ -227,6 +261,18 @@ export function CalendarForm() {
                 ))}
           </div>
         </div>
+        <Button variant="outline">
+          ISO string:
+          {book.date ? new Date(book.date).toISOString() : "No date selected"}
+          Locale date:{" "}
+          {book.date
+            ? new Date(book.date).toLocaleDateString(undefined, {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })
+            : "No date selected"}
+        </Button>
       </div>
     </div>
   );

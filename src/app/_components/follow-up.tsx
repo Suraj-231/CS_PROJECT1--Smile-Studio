@@ -41,7 +41,7 @@ export function FollowUp({ prevApp, onReady }: FollowUpProps) {
 
   const { data: followUp, isLoading } = api.apps.getFollowUp.useQuery({
     dentist,
-    date: date.toISOString(),
+    date: new Date(date).toISOString(),
     startTime,
     service: {
       id: service.id,
@@ -63,6 +63,13 @@ export function FollowUp({ prevApp, onReady }: FollowUpProps) {
   // Signal the parent once the query settles so it can swap the skeleton out
   useEffect(() => {
     if (!isLoading && !readyCalled.current) {
+      console.log(
+        "followUp",
+        "isLoading",
+        isLoading,
+        "readyCalled",
+        readyCalled.current,
+      );
       readyCalled.current = true;
       onReady();
     }
@@ -119,39 +126,6 @@ export function FollowUp({ prevApp, onReady }: FollowUpProps) {
           className="mx-auto rounded-lg border"
         />
       )}
-
-      {/*  Suggested slot summary card */}
-      {/*<div className="flex flex-col gap-3 rounded-lg border bg-muted/40 p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Suggested slot
-        </p>
-
-        <div className="flex items-center gap-3">
-          <CalendarCheck className="h-4 w-4 shrink-0 text-primary" />
-          <span className="text-sm font-medium">
-            {followUpDate
-              ? followUpDate.toLocaleDateString("en-US", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })
-              : "No suggestion available"}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Clock className="h-4 w-4 shrink-0 text-primary" />
-          <span className="text-sm font-medium">
-            {followUp?.startTime ?? startTime}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <UserCheck className="h-4 w-4 shrink-0 text-primary" />
-          <span className="text-sm font-medium">Dr. {dentist.name}</span>
-        </div>
-      </div>*/}
 
       {/* Actions */}
       <div className="flex justify-end gap-2">

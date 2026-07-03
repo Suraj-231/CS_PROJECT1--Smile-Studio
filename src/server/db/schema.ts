@@ -49,7 +49,7 @@ export const appointments = pgTable(
 export const service = pgTable("services", {
   id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
   name: text("name").notNull(),
-  estimatedTime: text("estimated_time"),
+  estimatedTime: integer("estimated_time").notNull(),
   priority: integer("priority").notNull().default(0),
   description: text("description"),
 });

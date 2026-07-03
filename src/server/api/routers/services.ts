@@ -13,7 +13,7 @@ export const servicesRouter = createTRPCRouter({
       z.object({
         name: z.string().min(1),
         priority: z.number(),
-        estimatedTime: z.string().optional(),
+        estimatedTime: z.number(),
         description: z.string().min(1).max(100).optional(),
       }),
     )
@@ -45,7 +45,7 @@ export const servicesRouter = createTRPCRouter({
       z.object({
         id: z.number(),
         name: z.string().min(1),
-        estimatedTime: z.string().optional(),
+        estimatedTime: z.number().optional(),
         description: z.string().min(1).max(500).optional(),
       }),
     )

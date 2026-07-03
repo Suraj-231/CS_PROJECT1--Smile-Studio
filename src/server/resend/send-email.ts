@@ -1,12 +1,12 @@
 import { Resend } from "resend";
 import {
-  AppointmentConfirmationEmail,
-  MagicLinkEmailTemplate,
-} from "./email-template";
+  getAppointmentConfirmationHtml,
+  getMagicLinkEmailHtml,
+} from "./templates";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function sendConfirmationEmail(details: {
+export async function resendConfirmationEmail(details: {
   email: string;
   patientName: string;
   dentistName: string;
@@ -40,17 +40,18 @@ export async function sendConfirmationEmail(details: {
   const icsBuffer = Buffer.from(icsContent, "utf-8");
 
   // 3. Dispatch directly through Resend
-  await resend.emails.send({
-    from: "Dental Clinic <noreply@widgetflow-email.singularity.co.ke>",
+  const {data, error} = await resend.emails.send({
+    from: "Dental Clinic <noreply@singularity.co.ke>",
     to: [email],
     subject: `Confirmed: Appointment for ${serviceName}`,
-    react: AppointmentConfirmationEmail({
+    html:getAppointmentConfirmationHtml({
       patientName,
       dentistName,
       serviceName,
       appointmentDate: dateStr,
       appointmentTime: timeStr,
-    }),
+    })
+    ,
     attachments: [
       {
         filename: "invite.ics",
@@ -59,21 +60,29 @@ export async function sendConfirmationEmail(details: {
       },
     ],
   });
+  if(error){
+    console.log("[RESEND]: resendConfirmationEmail(), ",error)
+  }
 }
 
-export async function resendMagicLink(
-  email: string,
-  token: string,
-  url: string,
-  metadata: any,
-) {
-  await resend.emails.send({
-    from: "Dental Clinic <widgetflow-email.singularity.co.ke>",
+
+
+export async function resendMagicLinkEmail(details: {
+  email: string;
+  token: string;
+  url: string;
+  metadata: any;
+}) {
+  const { email, token, url, metadata } = details;
+
+ const {data, error} = await resend.emails.send({
+    from: "Dental Clinic <noreply@singularity.co.ke>",
     to: [email],
-    subject: "Magic Link",
-    react: `
-      <p>Your magic link is ready to use!</p>
-      <p><a href="${url}">Click here to log in</a></p>
-    `,
+    subject: "Smile Studio Authentication",
+    html:getMagicLinkEmailHtml({ email, token, url, metadata })
+ 
   });
+  if(error){
+    console.log("[RESEND]:", error)
+  }
 }

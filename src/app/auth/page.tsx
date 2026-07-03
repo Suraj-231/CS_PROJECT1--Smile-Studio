@@ -6,10 +6,11 @@ import { authClient } from "~/server/better-auth/client";
 import { SiGoogle } from "@icons-pack/react-simple-icons";
 import { SignUpForm, SignInForm } from "../_components/forms";
 import { redirect } from "next/navigation";
-import { Mail } from "lucide-react";
+import { CheckCircle2, Mail } from "lucide-react";
 export default function AuthPage() {
   const [emailInput, setEmailInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
   const { data: session } = authClient.useSession();
   const [form, setForm] = useState<"signUp" | "signIn">("signUp");
   function renderForm() {
@@ -28,6 +29,7 @@ export default function AuthPage() {
         email: emailInput,
         callbackURL: "/profile",
       });
+      setSent(true)
     } catch (error) {
       console.error(error);
     } finally {
@@ -57,7 +59,15 @@ export default function AuthPage() {
       <p className="text-muted-foreground">
         Enter your email to receive a magic link
       </p>
-      <div className="flex sm:flex-row flex-col sm:gap-0 gap-4">
+    {sent ? (
+      <div className="flex flex-col text-center items-center justify-center">
+        <CheckCircle2 />
+        <p className="text-muted-foreground text-sm">
+          A link to sign in has been sent to your email.
+        </p>
+      </div>
+    ):(
+      <div className="flex sm:flex-row flex-col  sm:gap-0 gap-4">
         <Input
           value={emailInput}
           placeholder="Enter your email "
@@ -80,13 +90,17 @@ export default function AuthPage() {
             </>
           )}
         </Button>
+        
       </div>
-
-      <p>Or</p>
+    )}
+     <p>Or</p>
       <Button onClick={handleGoogleSignIn} variant="outline">
         <SiGoogle />
         Continue with Google
       </Button>
+      
+
+     
     </div>
   );
 }

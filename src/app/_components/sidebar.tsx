@@ -4,6 +4,7 @@ import {
   ChartColumn,
   PanelLeft,
   Users2Icon,
+  Stethoscope,
   Wrench,
 } from "lucide-react";
 import { useState } from "react";
@@ -48,7 +49,7 @@ export function Sidebar() {
           <Button
             variant={pathname === "/admin/services" ? "default" : "ghost"}
           >
-            <Wrench />
+            <Stethoscope />
             {open && <span>Services</span>}
           </Button>
         </Link>

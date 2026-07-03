@@ -42,13 +42,22 @@ interface ServiceCardProps {
     description: string | null;
     priority: number | null;
     id: number;
-    estimatedTime: string | null;
+    estimatedTime: number | null;
   };
 }
 
 export function ServiceCard(props: ServiceCardProps) {
   const book = useBook();
   const { name, description, priority, id, estimatedTime } = props.props;
+
+  function toTimeString(time:number){
+    if(time === 0) return ""
+    if(time < 60){
+      return `${time} minutes`
+    }else{
+      return `${Math.ceil(time/60)} hours`
+    }
+  }
   return (
     <div
       key={id}
@@ -63,7 +72,7 @@ export function ServiceCard(props: ServiceCardProps) {
           {name}
           {book.service?.id === id && <CheckCircle className="" />}
         </h2>
-        <p className={"text-sm "}>Estimated Time: {estimatedTime}</p>
+        <p className={"text-sm "}>Estimated Time: {toTimeString(estimatedTime || 0)} </p>
         <p
           className={`text-sm ${book.service?.id === id ? "text-white" : "text-muted-foreground"}`}
         >

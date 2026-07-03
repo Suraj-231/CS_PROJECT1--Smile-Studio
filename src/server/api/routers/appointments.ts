@@ -8,7 +8,7 @@ import {
 } from "~/server/api/trpc";
 import { TRPCError } from "@trpc/server";
 import { appointments, dentist, user, service } from "~/server/db/schema";
-import { sendConfirmationEmail } from "~/server/resend/send-email";
+import { resendConfirmationEmail } from "~/server/resend/send-email";
 
 export const appsRouter = createTRPCRouter({
   create: protectedProcedure
@@ -20,6 +20,7 @@ export const appsRouter = createTRPCRouter({
         }),
         date: z.string().datetime().pipe(z.coerce.date()),
         startTime: z.string(),
+        localeDateForEmail: z.string(),
         service: z.object({
           id: z.number(),
           name: z.string(),
@@ -86,7 +87,7 @@ export const appsRouter = createTRPCRouter({
               patientName: ctx.session.user.name,
               dentistName: input.dentist.name,
               serviceName: input.service.name,
-              dateStr: input.date.toLocaleDateString(), // "2026-07-15"
+              dateStr: input.localeDateForEmail, // "2026-07-15"
               timeStr: input.startTime, // "10:00:00"
             };
           });
@@ -110,7 +111,8 @@ export const appsRouter = createTRPCRouter({
         // Send email
         if (emailData) {
           try {
-            await sendConfirmationEmail(emailData);
+            console.log(`Sending email to ${emailData}`);
+            //await resendConfirmationEmail(emailData);
           } catch (emailError) {
             console.error(
               "Warning: Appointment saved, but confirmation email failed:",
@@ -133,6 +135,7 @@ export const appsRouter = createTRPCRouter({
         .select()
         .from(appointments)
         .where(eq(appointments.id, input.appointmentId))
+        .innerJoin(user, eq(appointments.userId, user.id))
         .innerJoin(dentist, eq(appointments.dentistId, dentist.id))
         .innerJoin(service, eq(appointments.service, service.id));
 
@@ -367,20 +370,25 @@ export const appsRouter = createTRPCRouter({
   getByDentistId: publicProcedure
     .input(
       z.object({
-        id: z.number().nullable().optional(),
+        dentistId: z.number().nullable().optional(),
         date: z.string().datetime().pipe(z.coerce.date()).optional().nullable(),
       }),
     )
     .query(async ({ ctx, input }) => {
-      if (!input.id || input.date === undefined || input.date === null) {
+      if (!input.dentistId || input.date === undefined || input.date === null) {
         return null;
       }
-      const unulledInput: number = input.id;
+      const unulledInput: number = input.dentistId;
 
       const data = await ctx.db
         .select({
           startTime: appointments.startTime,
           date: appointments.date,
+          service: {
+            id: service.id,
+            name: service.name,
+            estimatedTime: service.estimatedTime,
+          },
         })
         .from(appointments)
         .where(
@@ -388,7 +396,8 @@ export const appsRouter = createTRPCRouter({
             eq(appointments.dentistId, unulledInput),
             eq(appointments.date, input.date),
           ),
-        );
+        )
+        .innerJoin(service, eq(appointments.service, service.id));
 
       return data ?? null;
     }),
@@ -582,7 +591,7 @@ export const appsRouter = createTRPCRouter({
       };
     }),
 
-  reschedule: publicProcedure
+  reschedule: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -592,10 +601,25 @@ export const appsRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, date, startTime } = input;
-      await ctx.db
+      const updated = await ctx.db
         .update(appointments)
         .set({ date, startTime })
-        .where(eq(appointments.id, id));
+        .where(
+          and(
+            eq(appointments.id, id),
+            eq(appointments.userId, ctx.session.user.id),
+          ),
+        )
+        .returning({ id: appointments.id, date: appointments.date });
+
+      if (updated.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Appointment not found or not owned by user.",
+        });
+      }
+
+      return { success: true, appointment: updated[0] };
     }),
 
   editAppointment: adminProcedure

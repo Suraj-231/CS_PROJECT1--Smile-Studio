@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "~/components/ui/button";
 import Link from "next/link";
 import {
@@ -61,9 +61,16 @@ const GRADIENTS = [
   { name: "morning mist", css: "from-[#A1FFCE] via-[#FAFFD1] to-[#FDFBFB]" },
   { name: "violent flame", css: "from-[#BB73E0] via-[#FF71B0] to-[#7E30E1]" },
 ];
+const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export default function ProfilePage() {
-  const [selectedRescheduledDate, setSelectedRescheduledDate] = useState({
+  const [open, setOpen] = useState(false);
+  const [selectedRescheduledDate, setSelectedRescheduledDate] = useState<{
+    id: number | null;
+    appointmentId: number;
+    date: string;
+  }>({
+    id: null,
     appointmentId: 0,
     date: "",
   });
@@ -139,7 +146,7 @@ export default function ProfilePage() {
       <div className="flex sm:flex-row flex-col items-center gap-4">
         <div className="border flex flex-col rounded-md p-2 w-80 h-96">
           <div
-            className={`bg-gradient-to-br ${gradient?.css}  h-72 rounded-md`}
+            className={`bg-gradient-to-br ${gradient?.css}  h-62 rounded-md`}
           />
           <Avatar size="lg" className="-mt-4">
             {session.user.image && (
@@ -271,16 +278,7 @@ export default function ProfilePage() {
                           Upcoming
                         </span>
                         <div className="flex items-center gap-2">
-                          {/*<Link href={`profile/appointments/${app.id}`}>
-                            <Button
-                              size="xs"
-                              variant="ghost"
-                              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                            >
-                              <PenLine size={11} />
-                            </Button>
-                          </Link>*/}
-                          <Dialog>
+                          <Dialog open={open} onOpenChange={setOpen}>
                             <DialogTrigger
                               onClick={() => {
                                 setSelectedApp({
@@ -302,15 +300,14 @@ export default function ProfilePage() {
                                 <DialogDescription>
                                   Rescheduling appointment on{" "}
                                   <span className="text-primary underline">
-                                    {new Date(selectedApp.date).toLocaleString(
-                                      "en-US",
-                                      {
-                                        weekday: "short",
-                                        month: "short",
-                                        day: "numeric",
-                                        year: "numeric",
-                                      },
-                                    )}
+                                    {new Date(
+                                      selectedApp.date,
+                                    ).toLocaleDateString(undefined, {
+                                      weekday: "long",
+                                      year: "numeric",
+                                      month: "long",
+                                      day: "numeric",
+                                    })}
                                   </span>{" "}
                                   at
                                   <span className="text-primary underline">
@@ -330,21 +327,22 @@ export default function ProfilePage() {
                               ) : (
                                 rescheduledDates?.suggestions.map((r, id) => (
                                   <div
-                                    onClick={() =>
+                                    onClick={() => {
                                       setSelectedRescheduledDate({
-                                        appointmentId: id,
+                                        id: id,
+                                        appointmentId: app.id,
                                         date: r.date.toISOString(),
-                                      })
-                                    }
-                                    className={`p-3 w-full hover:cursor-pointer text-center rounded-lg ${id === selectedRescheduledDate.appointmentId ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}
+                                      });
+                                    }}
+                                    className={`p-3 w-full hover:cursor-pointer text-center rounded-lg ${id === selectedRescheduledDate.id ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}
                                     key={id}
                                   >
                                     <h1 className="text-xl">
-                                      {new Date(r.date).toLocaleString(
-                                        "en-US",
+                                      {new Date(r.date).toLocaleDateString(
+                                        undefined,
                                         {
-                                          weekday: "short",
-                                          month: "short",
+                                          weekday: "long",
+                                          month: "long",
                                           day: "numeric",
                                           year: "numeric",
                                         },
@@ -363,10 +361,19 @@ export default function ProfilePage() {
                                 {selectedRescheduledDate && (
                                   <Button
                                     onClick={async () => {
+                                      console.log(
+                                        `Rescheduling original appointment date: ${selectedApp.date} to ${selectedRescheduledDate.date}`,
+                                      );
                                       await reschduleApp.mutateAsync({
                                         id: selectedRescheduledDate.appointmentId,
                                         date: selectedRescheduledDate.date,
                                       });
+                                      setSelectedRescheduledDate({
+                                        id: null,
+                                        appointmentId: 0,
+                                        date: "",
+                                      });
+                                      setOpen(false);
                                       utils.apps.getForUser.invalidate();
                                     }}
                                   >
@@ -421,9 +428,9 @@ export default function ProfilePage() {
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Calendar size={11} />
-                          {new Date(app.date).toLocaleDateString("en-US", {
-                            weekday: "short",
-                            month: "short",
+                          {new Date(app.date).toLocaleDateString(undefined, {
+                            weekday: "long",
+                            month: "long",
                             day: "numeric",
                             year: "numeric",
                           })}
@@ -442,7 +449,6 @@ export default function ProfilePage() {
                     </div>
                   );
                 }
-
                 return (
                   <div
                     key={app.id}
@@ -458,8 +464,9 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex flex-col items-end gap-0.5 text-muted-foreground">
                       <span>
-                        {new Date(app.date).toLocaleDateString("en-US", {
-                          month: "short",
+                        {new Date(app.date).toLocaleDateString(undefined, {
+                          weekday: "long",
+                          month: "long",
                           day: "numeric",
                           year: "numeric",
                         })}

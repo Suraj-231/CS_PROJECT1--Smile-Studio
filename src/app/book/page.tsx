@@ -14,8 +14,6 @@ import {
 import { ButtonGroup } from "~/components/ui/button-group";
 import { ChevronRight, ChevronLeft, CheckCircle } from "lucide-react";
 import { useBook } from "../hooks/use-book";
-import { redirect } from "next/navigation";
-import { authClient } from "~/server/better-auth/client";
 
 // Skeleton that mirrors the shape of the FollowUp form
 function FollowUpSkeleton() {
@@ -47,10 +45,25 @@ function FollowUpSkeleton() {
 
 const STEPS = ["Service", "Dentist", "Schedule", "Confirm"] as const;
 
+type ConfirmedAppointment = {
+  dentist: {
+    id: number;
+    name: string;
+  };
+  date: Date;
+  startTime: string;
+  service: {
+    id: number;
+    priority: number | null;
+    name: string;
+  };
+};
+
 export default function BookPage() {
-  const { data: session } = authClient.useSession();
   const [loading, setLoading] = useState(false);
   const [followUpLoading, setFollowUpLoading] = useState(false);
+  const [confirmedAppointment, setConfirmedAppointment] =
+    useState<ConfirmedAppointment | null>(null);
   const book = useBook();
   const [form, setForm] = useState(0);
   const buttonGroupRef = useRef<HTMLDivElement>(null);
@@ -66,12 +79,24 @@ export default function BookPage() {
 
   const createAppointment = api.apps.create.useMutation({
     onSuccess: () => {
+      if (!book.dentist || !book.date || !book.startTime || !book.service) {
+        setLoading(false);
+        toast.error("Missing appointment details for follow-up.");
+        return;
+      }
+
+      setConfirmedAppointment({
+        dentist: book.dentist,
+        date: book.date,
+        startTime: book.startTime,
+        service: book.service,
+      });
+      setFollowUpLoading(true);
       toast.success("Booking confirmed successfully!");
       setLoading(false);
       // Show the skeleton immediately while the follow-up query warms up
-      setFollowUpLoading(true);
       book.clear();
-      setForm(4);
+      setForm((prev) => prev + 1);
     },
     onError: (error) => {
       console.log(error);
@@ -100,8 +125,7 @@ export default function BookPage() {
       setForm(2);
       return;
     }
-
-    setForm(form + 1);
+    setForm((prev) => prev + 1);
   }
   async function confirmAppointment() {
     if (!book.dentist || !book.date || !book.startTime || !book.service) {
@@ -112,11 +136,19 @@ export default function BookPage() {
 
     await createAppointment.mutateAsync({
       dentist: book.dentist,
+      localeDateForEmail: book.date.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
       date: book.date.toISOString(),
       startTime: book.startTime,
       service: book.service,
     });
   }
+  useEffect(() => {
+    console.log(followUpLoading);
+  }, [followUpLoading]);
 
   function renderForm() {
     switch (form) {
@@ -129,31 +161,14 @@ export default function BookPage() {
       case 3:
         return <ConfirmationForm />;
       case 4:
-        if (!book.dentist || !book.date || !book.startTime || !book.service) {
+        if (!confirmedAppointment) {
           return null;
         }
         return (
-          <>
-            {/* Skeleton sits on top while followUpLoading is true */}
-            {followUpLoading && <FollowUpSkeleton />}
-
-            {/*
-             * FollowUp mounts immediately (hidden) so its tRPC query starts
-             * running in the background. Once the query settles it calls
-             * onReady, which clears followUpLoading and reveals the form.
-             */}
-            <div className={followUpLoading ? "hidden" : ""}>
-              <FollowUp
-                prevApp={{
-                  dentist: book.dentist,
-                  date: book.date,
-                  startTime: book.startTime,
-                  service: book.service,
-                }}
-                onReady={() => setFollowUpLoading(false)}
-              />
-            </div>
-          </>
+          <FollowUp
+            prevApp={confirmedAppointment}
+            onReady={() => setFollowUpLoading(false)}
+          />
         );
       default:
         return null;
@@ -165,11 +180,11 @@ export default function BookPage() {
       <div className="mx-auto flex max-w-2xl flex-col gap-8">
         {/* Page header */}
         <div className="text-center">
-          <h1 className="text-xl font-semibold text-primary">
+          <h1 className="text-primary text-xl font-semibold">
             {form === 4 ? "You're all set!" : "Book your appointment"}
           </h1>
           {form === 4 && (
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="text-muted-foreground mt-1 text-sm">
               Your appointment has been booked. See the follow-up suggestion
               below.
             </p>
@@ -215,7 +230,7 @@ export default function BookPage() {
 
       {/* ButtonGroup — fixed bottom-right */}
       {form < 4 && (
-        <div ref={buttonGroupRef} className="fixed bottom-6 right-6 z-10">
+        <div ref={buttonGroupRef} className="fixed right-6 bottom-6 z-10">
           <ButtonGroup>
             <Button
               className="p-6"
