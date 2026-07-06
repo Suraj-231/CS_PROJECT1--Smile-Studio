@@ -54,6 +54,11 @@ export function FollowUp({ prevApp, onReady }: FollowUpProps) {
     if (!followUp || !service) return;
     await createFollowUp.mutateAsync({
       dentist,
+      localeDateForEmail: date.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
       date: date.toISOString(),
       startTime,
       service,

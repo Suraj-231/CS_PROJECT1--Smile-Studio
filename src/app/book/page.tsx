@@ -11,9 +11,11 @@ import {
   CalendarForm,
   ConfirmationForm,
 } from "../_components/forms";
+import Link from "next/link";
 import { ButtonGroup } from "~/components/ui/button-group";
-import { ChevronRight, ChevronLeft, CheckCircle } from "lucide-react";
+import { ChevronRight, ChevronLeft, CheckCircle, CircleAlert } from "lucide-react";
 import { useBook } from "../hooks/use-book";
+import {authClient} from "~/server/better-auth/client";
 
 // Skeleton that mirrors the shape of the FollowUp form
 function FollowUpSkeleton() {
@@ -60,6 +62,7 @@ type ConfirmedAppointment = {
 };
 
 export default function BookPage() {
+  const {data:session} = authClient.useSession();
   const [loading, setLoading] = useState(false);
   const [followUpLoading, setFollowUpLoading] = useState(false);
   const [confirmedAppointment, setConfirmedAppointment] =
@@ -76,7 +79,7 @@ export default function BookPage() {
       });
     }
   }, [book.service, book.dentist, book.date, book.startTime]);
-
+  const utils = api.useUtils();
   const createAppointment = api.apps.create.useMutation({
     onSuccess: () => {
       if (!book.dentist || !book.date || !book.startTime || !book.service) {
@@ -93,8 +96,8 @@ export default function BookPage() {
       });
       setFollowUpLoading(true);
       toast.success("Booking confirmed successfully!");
+      utils.apps.getLatest.invalidate();
       setLoading(false);
-      // Show the skeleton immediately while the follow-up query warms up
       book.clear();
       setForm((prev) => prev + 1);
     },
@@ -173,6 +176,17 @@ export default function BookPage() {
       default:
         return null;
     }
+  }
+
+  if(!session){
+    return <div className="flex flex-col px-4 gap-4 items-center justify-center min-h-screen">
+      <CircleAlert className="h-12 w-12 text-muted-foreground" />
+      <h1 className="text-2xl font-bold">You must be signed in to book an appointment</h1>
+      <p className="text-muted-foreground">Please sign in to continue.</p>
+      <Link href="/auth">
+        <Button >Sign In</Button>
+      </Link>
+    </div>
   }
 
   return (

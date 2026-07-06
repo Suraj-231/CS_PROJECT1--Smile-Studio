@@ -1,6 +1,8 @@
 "use client";
 import {
   BookCheck,
+  CalendarIcon,
+  ChevronRight,
   DoorOpen,
   House,
   Menu,
@@ -17,16 +19,44 @@ import { Button } from "~/components/ui/button";
 import { ButtonGroup } from "~/components/ui/button-group";
 import { authClient } from "~/server/better-auth/client";
 import { useIsMobile } from "~/app/hooks/use-mobile";
-
+import { api } from "~/trpc/react";
+import { Skeleton } from "~/components/ui/skeleton";
 export function Header() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const { data: session } = authClient.useSession();
   const isMobile = useIsMobile();
+
+  const { data: upcoming, isLoading } = api.apps.getLatest.useQuery();
   return (
     <div className="flex py-3 items-center justify-between px-8 border-b w-full">
-      <div />
+      {isLoading ? (
+        <div className="flex gap-2 items-center">
+          <Skeleton className="w-40 rounded-full p-2" />
+          <Skeleton className="w-40 rounded-full p-2" />
+        </div>
+      ) : upcoming?.[0] ? (
+        <div className="text-xs flex text-primary items-center gap-2 hover:bg-muted px-4 py-1 rounded-full cursor-pointer">
+          <div className="text-muted-foreground flex items-center gap-2">
+            <CalendarIcon className="" size={10} />
+            <p>Upcoming Appointment: </p>
+          </div>
+          {upcoming[0]?.date && (
+            <p className="">
+              {new Date(upcoming[0].date).toLocaleDateString(undefined, {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </p>
+          )}
+          <p>{upcoming[0]?.startTime.slice(0, 5)}</p>
+        </div>
+      ) : (
+        <div />
+      )}
       {isMobile ? (
         <div className={`flex gap-4`}>
           <Button onClick={() => setOpen(!open)}>
@@ -51,7 +81,7 @@ export function Header() {
                     router.push("/admin");
                     setOpen(false);
                   }}
-                  variant={pathname.includes("admin") ? "default" : "ghost"}
+                  variant={pathname.startsWith("/admin") ? "default" : "ghost"}
                 >
                   Admin
                 </Button>
@@ -90,15 +120,26 @@ export function Header() {
                   </Button>
                 </div>
               ) : (
+                <>
                 <Button
                   onClick={() => {
-                    router.push("/auth");
+                    router.push("/auth/sign-in");
                     setOpen(false);
                   }}
-                  variant={pathname === "/auth" ? "default" : "ghost"}
+                  variant={pathname === "/auth/sign-in" ? "default" : "ghost"}
+                >
+                  Sign In
+                </Button>
+                <Button
+                  onClick={() => {
+                    router.push("/auth/sign-up");
+                    setOpen(false);
+                  }}
+                  variant={pathname === "/auth/sign-up" ? "default" : "ghost"}
                 >
                   Create an account
                 </Button>
+                </>
               )}
             </div>
           )}
@@ -112,7 +153,9 @@ export function Header() {
           </Link>
           {session?.user.role === "admin" && (
             <Link href="/admin">
-              <Button variant={pathname === "/admin" ? "default" : "ghost"}>
+              <Button
+                variant={pathname.startsWith("/admin") ? "default" : "ghost"}
+              >
                 Admin
               </Button>
             </Link>
@@ -145,12 +188,22 @@ export function Header() {
                 </Button>
               </Link>
             ) : (
-              <Link href="/auth">
-                <Button variant={pathname === "/auth" ? "default" : "ghost"}>
-                  Sign In
+              <div className="flex gap-2">
+               <Link href="/auth/sign-in">
+                <Button variant={pathname === "/auth/sign-in" ? "default" : "ghost"}>
+                  Log in
                 </Button>
               </Link>
+              <Link href="/auth/sign-up">
+                <Button variant={'default'}>
+                  Create an account
+                  <ChevronRight />
+                </Button>
+              </Link>
+              </div>
+              
             )}
+           
           </ButtonGroup>
         </div>
       )}

@@ -17,6 +17,12 @@ export const dentistRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const dentistExists = await ctx.db.query.dentist.findFirst({
+        where: eq(dentist.name, input.name),
+      });
+      if (dentistExists) {
+        throw new Error("Dentist already exists");
+      }
       await ctx.db.insert(dentist).values({
         name: input.name,
         imageUrl: input.imageUrl,

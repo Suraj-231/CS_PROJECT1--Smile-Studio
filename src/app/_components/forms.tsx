@@ -3,9 +3,7 @@ import { useBook } from "../hooks/use-book";
 import { Calendar } from "~/components/ui/calendar";
 import { uploadFilesFromServer } from "~/lib/uploadthing";
 import { ServiceCard, DentistCard, DetailCard } from "./cards";
-import { Alert, AlertTitle } from "~/components/ui/alert";
 import {
-  Ban,
   Clock,
   UserCircle2,
   CirclePlus,
@@ -16,7 +14,6 @@ import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
 import { Skeleton } from "~/components/ui/skeleton";
 import { toast } from "sonner";
-
 import { authClient } from "~/server/better-auth/client";
 import {
   Select,
@@ -25,7 +22,6 @@ import {
   SelectItem,
   SelectTrigger,
 } from "~/components/ui/select";
-
 import {
   Dialog,
   DialogContent,
@@ -34,15 +30,7 @@ import {
   DialogHeader,
   DialogDescription,
 } from "~/components/ui/dialog";
-
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "~/components/ui/input-group";
 import { Input } from "~/components/ui/input";
-import { Search } from "lucide-react";
-import { TimeSlotPicker } from "./time-slot-picker";
 
 const TIMES = [
   { value: "08:30:00", label: "08:30 AM" },
@@ -67,7 +55,9 @@ const TIMES = [
 
 function parseTimeToMinutes(time: string) {
   const [hour, minute] = time.split(":").map((part) => Number(part));
-  return hour * 60 + minute;
+  if (hour && minute) {
+    return hour * 60 + minute;
+  }
 }
 
 function parseEstimatedTimeToMinutes(estimatedTime?: string | null) {
@@ -89,25 +79,13 @@ interface ServiceType {
   name: string;
   priority: number | null;
   description: string | null;
-  estimatedTime: string | null;
+  estimatedTime: number | null;
 }
 export function ServiceForm() {
   const [query, setQuery] = useState("");
   const [filteredServices, setFilteredServices] = useState<ServiceType[]>([]);
   const { data: services, isLoading } = api.services.getAll.useQuery();
   const book = useBook();
-
-  useEffect(() => {
-    if (query && services) {
-      setFilteredServices(
-        services.filter((s) =>
-          s.name.toLowerCase().includes(query.toLowerCase()),
-        ),
-      );
-    } else {
-      setFilteredServices(services ?? []);
-    }
-  }, [query, services]);
 
   return (
     <div className="flex flex-col gap-4 px-10">
@@ -146,8 +124,8 @@ export function ServiceForm() {
           Array.from({ length: 4 }, (_, i) => i + 1).map((i) => (
             <Skeleton key={i} className="h-28 w-full rounded-lg" />
           ))
-        ) : filteredServices.length > 0 ? (
-          filteredServices.map((service) => (
+        ) : services && services?.length > 0 ? (
+          services?.map((service) => (
             <ServiceCard key={service.id} props={service} />
           ))
         ) : (
@@ -191,6 +169,8 @@ export function DentistForm() {
 export function CalendarForm() {
   const book = useBook();
 
+  const { data: appsByUser } = api.apps.getByUserId.useQuery();
+
   const bookingsByDentist = api.apps.getByDentistId.useQuery(
     {
       dentistId: book.dentist?.id,
@@ -208,12 +188,19 @@ export function CalendarForm() {
       const durationMinutes = parseEstimatedTimeToMinutes(
         app.service?.estimatedTime.toString(),
       );
-      const endMinutes = startMinutes + durationMinutes;
 
-      for (const slot of TIMES) {
-        const slotMinutes = parseTimeToMinutes(slot.value);
-        if (slotMinutes >= startMinutes && slotMinutes < endMinutes) {
-          blocked.add(slot.value);
+      if (startMinutes) {
+        const endMinutes = startMinutes + durationMinutes;
+
+        for (const slot of TIMES) {
+          const slotMinutes = parseTimeToMinutes(slot.value);
+          if (
+            slotMinutes &&
+            slotMinutes >= startMinutes &&
+            slotMinutes < endMinutes
+          ) {
+            blocked.add(slot.value);
+          }
         }
       }
     }
@@ -241,7 +228,11 @@ export function CalendarForm() {
           modifiersClassNames={{
             booked: "bg-muted",
           }}
-          disabled={[{ before: new Date() }, { dayOfWeek: [0, 6] }]}
+          disabled={[
+            { before: new Date() },
+            { dayOfWeek: [0, 6] },
+            appsByUser?.map((a) => a.date) ?? [],
+          ]}
           className="rounded-lg mx-auto "
         />
         <div className="grid grid-auto-fit items-center mt-5">
@@ -261,18 +252,6 @@ export function CalendarForm() {
                 ))}
           </div>
         </div>
-        <Button variant="outline">
-          ISO string:
-          {book.date ? new Date(book.date).toISOString() : "No date selected"}
-          Locale date:{" "}
-          {book.date
-            ? new Date(book.date).toLocaleDateString(undefined, {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })
-            : "No date selected"}
-        </Button>
       </div>
     </div>
   );
@@ -562,7 +541,7 @@ export function AddServiceForm() {
     name: "",
     description: "",
     priority: "",
-    estimatedTime: "",
+    estimatedTime: 0,
   });
   const createService = api.services.create.useMutation({
     onSuccess: () => {
@@ -571,7 +550,7 @@ export function AddServiceForm() {
       setFormData({
         name: "",
         description: "",
-        estimatedTime: "",
+        estimatedTime: 0,
         priority: "",
       });
     },
@@ -645,9 +624,9 @@ export function AddServiceForm() {
             <div className="grid">
               <label>Estimated Time</label>
               <Select
-                value={formData.estimatedTime}
+                value={formData.estimatedTime.toString()}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, estimatedTime: value })
+                  setFormData({ ...formData, estimatedTime: parseInt(value) })
                 }
               >
                 <SelectTrigger>
@@ -657,11 +636,12 @@ export function AddServiceForm() {
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="15m">15m</SelectItem>
-                  <SelectItem value="30m">30m</SelectItem>
-                  <SelectItem value="1 hour">1 hour</SelectItem>
-                  <SelectItem value="2 hours">2 hours</SelectItem>
-                  <SelectItem value="2 hours 30min">2 hours 30min</SelectItem>
+                  <SelectItem value="15">15m</SelectItem>
+                  <SelectItem value="30">30m</SelectItem>
+                  <SelectItem value="60">1 hour</SelectItem>
+                  <SelectItem value="120">2 hours</SelectItem>
+                  <SelectItem value="170">2 hours 30min</SelectItem>
+                  <SelectItem value="180">3 hours</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -687,138 +667,7 @@ export function AddServiceForm() {
   );
 }
 
-export function SignUpForm() {
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
-  async function handleSignUp() {
-    setLoading(true);
-    if (!formData.email || !formData.password || !formData.name) {
-      console.log("Please fill in all fields");
-      setLoading(false);
-      return;
-    }
-    try {
-      await authClient.signUp.email({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        callbackURL: "/profile",
-      });
-    } catch (error) {
-      toast.error("Error creating an account", {
-        description: "Please try again.",
-      });
-      console.log(error);
-    } finally {
-      setLoading(false);
-    }
-  }
-  return (
-    <div className="flex flex-col gap-4 w-80 justify-self-center">
-      <div className="text-center mb-4">
-        <h1 className="text-xl ">Create an Account</h1>
-        <p className="text-muted-foreground">
-          To be able to book appointments, you will have to create an account
-          first.
-        </p>
-      </div>
-      <div className="flex flex-col gap-4 w-80">
-        <div>
-          <span>Name</span>
-          <Input
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          />
-        </div>
-        <div>
-          <span>Email</span>
-          <Input
-            type="email"
-            value={formData.email}
-            onChange={(e) =>
-              setFormData({ ...formData, email: e.target.value })
-            }
-          />
-        </div>
-        <div>
-          <span>Password</span>
-          <Input
-            type="password"
-            value={formData.password}
-            onChange={(e) =>
-              setFormData({ ...formData, password: e.target.value })
-            }
-          />
-        </div>
 
-        <Button onClick={handleSignUp} disabled={loading}>
-          {loading ? "Loading..." : "Submit"}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-export function SignInForm() {
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-
-  async function handleSignIn() {
-    setLoading(true);
-    try {
-      await authClient.signIn.email({
-        email: formData.email,
-        password: formData.password,
-        callbackURL: "/profile",
-      });
-    } catch (error) {
-      toast.error("Error logging in.", { description: "Please try again." });
-      console.log(error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-4 w-80 justify-self-center">
-      <div className="text-center mb-4">
-        <h1 className="text-xl ">Sign In</h1>
-        <p className="text-muted-foreground">
-          Welcome back! Please sign in to continue.
-        </p>
-      </div>
-      <div>
-        <span>Email</span>
-        <Input
-          type="email"
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-        />
-      </div>
-      <div>
-        <span>Password</span>
-        <Input
-          type="password"
-          value={formData.password}
-          onChange={(e) =>
-            setFormData({ ...formData, password: e.target.value })
-          }
-        />
-      </div>
-
-      <Button onClick={handleSignIn} disabled={loading}>
-        {loading ? "Loading..." : "Submit"}
-      </Button>
-    </div>
-  );
-}
 
 export function EditAppointmentForm({
   appointmentId,
@@ -829,7 +678,7 @@ export function EditAppointmentForm({
   const { data: allApps, isLoading: allAppsL } = api.apps.getAll.useQuery();
   const bookingsByDentist = api.apps.getByDentistId.useQuery(
     {
-      id: book.dentist?.id ?? 0,
+      dentistId: book.dentist?.id ?? 0,
     },
     { enabled: !!book.dentist?.id },
   );

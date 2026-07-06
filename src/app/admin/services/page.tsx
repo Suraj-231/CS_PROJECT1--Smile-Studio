@@ -16,7 +16,7 @@ export default function ServicesPage() {
         </div>
         <AddServiceForm />
       </div>
-      <div className="flex flex-col gap-4 overflow-y-auto">
+      <div className="flex flex-col max-h-[calc(100vh-110px)] overflow-y-auto gap-4">
         {loading
           ? Array.from({ length: 8 }).map((_, i) => (
               <Skeleton key={i} className="p-4 rounded-lg w-full" />

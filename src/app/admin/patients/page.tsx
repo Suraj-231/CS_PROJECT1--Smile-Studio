@@ -3,8 +3,9 @@ import {
   EllipsisVertical,
   Loader2,
   PencilLine,
+  ChevronLeft,
+  ChevronRight,
   Search,
-  ShieldUserIcon,
   TrashIcon,
   CalendarIcon,
   Clock,
@@ -14,6 +15,7 @@ import {
 import { api } from "~/trpc/react";
 import { AddDentistForm, AddUserForm } from "~/app/_components/forms";
 import { Button } from "~/components/ui/button";
+import { ButtonGroup, ButtonGroupText } from "~/components/ui/button-group";
 import { Skeleton } from "~/components/ui/skeleton";
 import {
   Dialog,
@@ -30,9 +32,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
@@ -69,17 +68,32 @@ export default function PatientPage() {
   const utils = api.useUtils();
   const [selectedUser, setSelectedUser] = useState("");
   const [activeUserId, setActiveUserId] = useState("");
-  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
   const [password, setPassword] = useState("");
   const [search, setSearch] = useState("");
-  const [totalUsers, setTotalUsers] = useState(0);
   const [debouncedSearch] = useDebounce(search, 1000);
 
   const { data: users, isLoading: usersLoading } =
     api.users.getWithSearch.useQuery({
       query: debouncedSearch,
       limit: pageSize,
+      page: currentPage,
     });
+
+  const patientRows = users?.data ?? [];
+  const totalUsers = users?.total ?? 0;
+  const totalPages = users?.totalPages ?? 1;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const { data: dentists, isLoading: loadingDentists } =
     api.dentists.getAll.useQuery();
@@ -91,7 +105,7 @@ export default function PatientPage() {
     );
 
   return (
-    <div className="flex flex-col">
+    <div className="flex h-screen flex-col space-y-1 overflow-y-auto pb-4 md:h-auto md:overflow-visible md:pb-0">
       <div className="flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4">
         <div>
           <h1>Patients</h1>
@@ -145,8 +159,8 @@ export default function PatientPage() {
                   </TableCell>
                 </TableRow>
               ))
-            ) : users ? (
-              users.map((user) => {
+            ) : patientRows.length > 0 ? (
+              patientRows.map((user) => {
                 const isExpanded = selectedUser === user.id;
                 return (
                   <Fragment key={user.id}>
@@ -166,10 +180,13 @@ export default function PatientPage() {
                       </TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>{user.role}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right ">
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button variant="destructive" className="text-xs">
+                            <Button
+                              variant="destructive"
+                              className="text-xs mr-1"
+                            >
                               <TrashIcon size={18} />
                             </Button>
                           </DialogTrigger>
@@ -189,7 +206,7 @@ export default function PatientPage() {
                                   await authClient.admin.removeUser({
                                     userId: user.id,
                                   });
-                                  utils.invalidate();
+                                  utils.users.getWithSearch.invalidate();
                                 }}
                               >
                                 Remove
@@ -272,12 +289,12 @@ export default function PatientPage() {
                                         No appointments found.
                                       </p>
                                     ) : (
-                                      <div className="grid grid-cols-2 gap-1">
+                                      <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                                         {userData.map(
                                           ({ appointments: appt }) => (
                                             <div
                                               key={appt.id}
-                                              className={`flex gap-2 w-52 items-center text-xs p-1 rounded-full ${appt.date > new Date() ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}
+                                              className={`flex w-full items-center gap-2 rounded-full p-1 text-xs sm:w-52 ${appt.date > new Date() ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}
                                             >
                                               <span className="flex items-center gap-1">
                                                 <CalendarIcon className="h-3 w-3" />
@@ -302,7 +319,7 @@ export default function PatientPage() {
                                   </div>
                                   <div className="flex flex-col gap-2 ">
                                     <p className="text-xs text-muted-foreground">
-                                      Edit User Information
+                                      Edit
                                     </p>
                                     <div className="flex flex-col gap-1">
                                       <Input
@@ -334,15 +351,57 @@ export default function PatientPage() {
                                           }
                                         }}
                                       >
-                                        Save new password
+                                        Reset users password
                                       </Button>
                                     </div>
                                     <DropdownMenuSeparator />
-                                    {/*<Button onClick={() => {
-                                        authClient.admin.
-                                      }}>
-
-                                      </Button>*/}
+                                    <p className="text-xs text-muted-foreground">
+                                      Settings
+                                    </p>
+                                    <Dialog>
+                                      <DialogTrigger>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="text-xs text-muted-foreground"
+                                        >
+                                          <ShieldCheck />
+                                          Make Admin
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent>
+                                        <DialogTitle>Make Admin</DialogTitle>
+                                        <DialogDescription>
+                                          Are you sure you want to make this
+                                          user an admin?
+                                        </DialogDescription>
+                                      </DialogContent>
+                                      <DialogClose>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="text-xs text-muted-foreground"
+                                        >
+                                          Cancel
+                                        </Button>
+                                      </DialogClose>
+                                      <DialogFooter>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="text-xs  text-muted-foreground"
+                                          onClick={() => {
+                                            authClient.admin.setRole({
+                                              userId: user.id,
+                                              role: "admin",
+                                            });
+                                            utils.users.getWithSearch.invalidate();
+                                          }}
+                                        >
+                                          Confirm
+                                        </Button>
+                                      </DialogFooter>
+                                    </Dialog>
                                   </div>
                                 </>
                               )}
@@ -363,9 +422,40 @@ export default function PatientPage() {
             )}
           </TableBody>
         </Table>
+
+        <div className="mt-4 flex justify-end">
+          <ButtonGroup>
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Previous page"
+              disabled={currentPage <= 1 || usersLoading}
+              onClick={() =>
+                setCurrentPage((prev) => Math.max(1, prev - 1))
+              }
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <ButtonGroupText className="text-xs text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </ButtonGroupText>
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Next page"
+              disabled={currentPage >= totalPages || usersLoading}
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+              }
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            
+          </ButtonGroup>
+        </div>
       </div>
 
-      <div className="flex flex-col  md:flex-row md:justify-between items-start md:items-center mt-20 gap-4">
+      <div className="mt-8 flex flex-col items-start gap-4 md:mt-20 md:flex-row md:items-center md:justify-between">
         <div className="mb-1">
           <h1>Dentists</h1>
           <p className="text-muted-foreground">View and manage all dentists.</p>

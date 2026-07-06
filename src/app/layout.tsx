@@ -24,8 +24,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${dmSans.className} `}>
       <body className="">
-        <Header />
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+        <TRPCReactProvider>
+          <Header />
+          {children}
+        </TRPCReactProvider>
         <Toaster />
       </body>
     </html>

@@ -118,6 +118,8 @@ export default function ProfilePage() {
     offset: currentOffset,
   });
 
+  
+
   const deleteAppointment = api.apps.delete.useMutation({
     onSuccess: () => {
       toast.success("Appointment deleted successfully");
@@ -136,19 +138,19 @@ export default function ProfilePage() {
     );
   }
 
+
   if (!session) {
     router.push("/auth");
     return null;
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
+    <div className="flex mt-2 flex-col items-center justify-center min-h-screen">
       <div className="flex sm:flex-row flex-col items-center gap-4">
-        <div className="border flex flex-col rounded-md p-2 w-80 h-96">
-          <div
-            className={`bg-gradient-to-br ${gradient?.css}  h-62 rounded-md`}
-          />
-          <Avatar size="lg" className="-mt-4">
+        <div className="border flex justify-between py-8 flex-col items-center text-center rounded-md p-2 w-80 h-96">
+          
+          <div className="flex flex-col items-center gap-2">
+              <Avatar size="lg" className="-mt-4">
             {session.user.image && (
               <AvatarImage src={session.user.image} alt={session.user.name} />
             )}
@@ -156,55 +158,35 @@ export default function ProfilePage() {
               {session.user.name.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <div className="flex flex-col mb-3">
-            <div>
-              <div className="flex items-center justify-between">
                 <h1 className="text-2xl">{session.user.name}</h1>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="text-muted-foreground">
-                      <Settings size={16} />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuLabel>Profile Settings</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
+                <p className="text-xs text-muted-foreground ">
+                {session.user.email}
+              </p>
+                <p>{session.user.role}</p>
+          </div>
+            <div className="text-xs text-muted-foreground ">
+              <p>Joined on:</p>
+              <p >
+                {new Date(session.user.createdAt).toLocaleDateString(undefined, {
+                  month:"long",
+                  year:"numeric",
+                  day:"numeric"
+                })}
+              </p>
+              </div>
+              <Button
+              size="sm"
                       onClick={() => {
-                        setGradient(
-                          GRADIENTS[
-                            Math.ceil(Math.random() * GRADIENTS.length - 1)
-                          ],
-                        );
+                        authClient.signOut()
+                        utils.apps.getLatest.invalidate()
                       }}
-                      variant="default"
-                      className="cursor-pointer"
-                    >
-                      <RefreshCcw size={16} />
-                      Change gradient
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => authClient.signOut()}
                       variant="destructive"
                       className="cursor-pointer"
                     >
                       <LogOut size={16} />
                       Logout
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-
-              <p className="text-xs text-muted-foreground ">
-                {new Date(session.user.createdAt).toLocaleDateString()}
-              </p>
-              <p className="text-xs text-muted-foreground ">
-                {session.user.email}
-              </p>
-            </div>
-          </div>
+                    </Button>
         </div>
-
         <div className="flex h-96 w-80 flex-col gap-3 overflow-y-auto rounded-lg border p-3">
           {/* Header */}
           <div className="flex items-center justify-between">

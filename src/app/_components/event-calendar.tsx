@@ -4,15 +4,12 @@ import {
   EllipsisVertical,
   PenLineIcon,
   Trash,
-  UserCircle2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState, useEffect, useMemo } from "react";
 import { ButtonGroup } from "~/components/ui/button-group";
 import { Button } from "~/components/ui/button";
-import Link from "next/link";
-
 import {
   DialogContent,
   DialogHeader,
@@ -26,12 +23,10 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { api } from "~/trpc/react";
 import { AvatarFallback, Avatar, AvatarImage } from "~/components/ui/avatar";
-
 
 const MONTHS = [
   "January",
@@ -47,7 +42,6 @@ const MONTHS = [
   "November",
   "December",
 ];
-
 
 export function EventCalendar() {
   const today = new Date();
@@ -162,11 +156,16 @@ export function EventCalendar() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>
-                  Appointments on {selectedYear}-
-                  {selectedMonth > 9
-                    ? selectedMonth + 1
-                    : `0${selectedMonth + 1}`}
-                  -{day}
+                  Appointments on{" "}
+                  {new Date(
+                    selectedYear,
+                    selectedMonth,
+                    day,
+                  ).toLocaleDateString(undefined, {
+                    weekday: "long",
+                    month: "long",
+                    year: "numeric",
+                  })}
                 </DialogTitle>
               </DialogHeader>
               <div className="grid">
@@ -219,7 +218,7 @@ export function Event(event: EventProps) {
         </Avatar>
         <div>
           <p className="">{user.name}</p>
-          <p className="text-muted-foreground text-xs">{user.email}</p>
+          {/*<p className="text-muted-foreground text-xs">{user.email}</p>*/}
         </div>
       </div>
       <p className="text-muted-foreground">
@@ -238,7 +237,7 @@ export function Event(event: EventProps) {
           <DropdownMenuGroup>
             <DropdownMenuLabel>Edit Appointment</DropdownMenuLabel>
             <DropdownMenuItem
-              onClick={() => router.push(`admin/appointments/${appointmentId}`)}
+              onClick={() => router.push(`appointments/${appointmentId}`)}
             >
               <PenLineIcon className="mr-2" />
               Edit

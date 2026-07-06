@@ -40,18 +40,17 @@ export async function resendConfirmationEmail(details: {
   const icsBuffer = Buffer.from(icsContent, "utf-8");
 
   // 3. Dispatch directly through Resend
-  const {data, error} = await resend.emails.send({
+  const { data, error } = await resend.emails.send({
     from: "Dental Clinic <noreply@singularity.co.ke>",
     to: [email],
     subject: `Confirmed: Appointment for ${serviceName}`,
-    html:getAppointmentConfirmationHtml({
+    html: getAppointmentConfirmationHtml({
       patientName,
       dentistName,
       serviceName,
       appointmentDate: dateStr,
       appointmentTime: timeStr,
-    })
-    ,
+    }),
     attachments: [
       {
         filename: "invite.ics",
@@ -60,12 +59,11 @@ export async function resendConfirmationEmail(details: {
       },
     ],
   });
-  if(error){
-    console.log("[RESEND]: resendConfirmationEmail(), ",error)
+  if (error) {
+    console.log("[RESEND]:", error);
+    throw new Error("[RESEND]: failed to send appointment confirmation email");
   }
 }
-
-
 
 export async function resendMagicLinkEmail(details: {
   email: string;
@@ -75,14 +73,14 @@ export async function resendMagicLinkEmail(details: {
 }) {
   const { email, token, url, metadata } = details;
 
- const {data, error} = await resend.emails.send({
+  const { data, error } = await resend.emails.send({
     from: "Dental Clinic <noreply@singularity.co.ke>",
     to: [email],
     subject: "Smile Studio Authentication",
-    html:getMagicLinkEmailHtml({ email, token, url, metadata })
- 
+    html: getMagicLinkEmailHtml({ email, token, url, metadata }),
   });
-  if(error){
-    console.log("[RESEND]:", error)
+  if (error) {
+    console.log("[RESEND]:", error);
+    throw new Error("[RESEND]: failed to send magic link email");
   }
 }

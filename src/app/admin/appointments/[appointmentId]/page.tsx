@@ -1,6 +1,7 @@
 "use client";
 import { use, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
@@ -19,6 +20,7 @@ import {
   Trash2,
   WandSparkles,
   UserCircle,
+  ChevronLeft,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -214,9 +216,21 @@ export default function AppointmentPage({
   ).user;
 
   return (
-    <div className="min-h-[70vh] w-full flex flex-col items-center justify-center">
+    <div className="min-h-[70vh] w-full flex flex-col items-center justify-center gap-4">
+      <div className="w-full flex items-center">
+        <Button onClick={() => router.back()} variant="ghost">
+          <ChevronLeft size={20} />
+        </Button>
+        <div>
+          <h1 className="text-2xl ">Editing appointment</h1>
+          <p className="text-muted-foreground">
+            You are currently editing {userInfo?.name ?? ""}'s{" "}
+            {appointmentRecord.services.name} appointment.
+          </p>
+        </div>
+      </div>
       <div className="mx-auto flex max-w-6xl items-start justify-center gap-5">
-        <section className="w-full max-w-2xl rounded-2xl border border-primary/30 bg-muted p-5 md:p-7">
+        <section className="w-full max-w-2xl rounded-lg bg-muted p-5 md:p-7">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-4">
               <div className="flex items-center gap-3  px-3 py-2">
@@ -254,23 +268,23 @@ export default function AppointmentPage({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setShowGeneratedPanel(true)}>
                   <WandSparkles size={14} />
-                  Generate Reschedule Appointments
+                  Reschedule
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowGeneratedPanel(false)}>
+                {/*<DropdownMenuItem onClick={() => setShowGeneratedPanel(false)}>
                   <CalendarDays size={14} />
                   Hide Reschedule Panel
-                </DropdownMenuItem>
+                </DropdownMenuItem>*/}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive" onClick={handleDelete}>
                   <Trash2 size={14} />
-                  Delete Appointment
+                  Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
 
           <div className="mx-auto mt-6 flex w-full max-w-md flex-col gap-3 text-sm">
-            <h1 className="flex items-center mx-auto gap-2 text-2xl text-center   font-semibold ">
+            <h1 className="flex items-center mx-auto gap-2 text-2xl text-center text-primary ">
               <Stethoscope size={20} />
               {appointmentRecord.services.name}
             </h1>

@@ -6,6 +6,7 @@ import "./src/env.js";
 import { withUt } from "uploadthing/tw";
 /** @type {import("next").NextConfig} */
 const config = {
+  swcMinify: false,
   images: {
     remotePatterns: [
       {

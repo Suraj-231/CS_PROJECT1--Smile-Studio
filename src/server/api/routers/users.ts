@@ -13,40 +13,52 @@ export const usersRouter = createTRPCRouter({
       z.object({
         query: z.optional(z.string()),
         limit: z.number().default(50),
+        page: z.number().min(1).default(1),
       }),
     )
     .query(async ({ ctx, input }) => {
+      const page = Math.max(1, input.page);
+      const offset = (page - 1) * input.limit;
+      const searchTerm = input.query ? `%${input.query.toLowerCase()}%` : null;
+      const whereClause = searchTerm
+        ? or(ilike(user.name, searchTerm), ilike(user.email, searchTerm))
+        : undefined;
+
       if (!input.query) {
         console.log(`No search query provided, defaulting to all users`);
-        const data = await ctx.db.query.user.findMany({
-          limit: input.limit,
-          orderBy: (users, { desc }) => [desc(user.id)],
-        });
-        return data ?? [];
+      } else {
+        console.log(`Searching for: ${input.query}`);
       }
-      const searchTerm = `%${input.query.toLowerCase()}%`;
-      console.log(`Searching for: ${input.query}`);
+
       const data = await ctx.db.query.user.findMany({
-        where: or(
-          ilike(user.name, searchTerm),
-          ilike(user.email, searchTerm),
-          // Add more columns as needed based on your user schema
-          // ilike(user.username, searchTerm),
-          // ilike(user.firstName, searchTerm),
-          // ilike(user.lastName, searchTerm),
-        ),
+        where: whereClause,
         limit: input.limit,
+        offset,
         orderBy: (users, { desc }) => [desc(user.id)],
       });
 
-      if (data.length > 0) {
-        console.log(
-          `Found user matching: ${input.query} (${data.length} results)`,
-        );
-        return data;
+      const totalResult = await ctx.db
+        .select({ count: sql<number>`count(*)` })
+        .from(user)
+        .where(whereClause);
+
+      const total = Number(totalResult[0]?.count ?? 0);
+      const totalPages = Math.max(1, Math.ceil(total / input.limit));
+
+      if (input.query && data.length > 0) {
+        console.log(`Found user matching: ${input.query} (${total} results)`);
       }
-      console.log(`No results found for: ${input.query}`);
-      return [];
+
+      if (input.query && data.length === 0) {
+        console.log(`No results found for: ${input.query}`);
+      }
+
+      return {
+        data,
+        total,
+        totalPages,
+        page,
+      };
     }),
 
   getCount: adminProcedure.query(async ({ ctx }) => {

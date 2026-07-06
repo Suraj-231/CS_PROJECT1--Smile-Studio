@@ -28,7 +28,6 @@ export const appsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      //check if appointment already exists
       const existingAppointmentOnDate =
         await ctx.db.query.appointments.findFirst({
           where: (appointments, { and, eq }) =>
@@ -65,7 +64,6 @@ export const appsRouter = createTRPCRouter({
           timeStr: string;
         } | null = null;
         try {
-          // Start a new transaction to prevent any double booking or race conditions
           await ctx.db.transaction(async (tx) => {
             const newApp = await ctx.db.insert(appointments).values({
               userId: ctx.session.user.id,
@@ -74,7 +72,6 @@ export const appsRouter = createTRPCRouter({
               startTime: input.startTime,
               service: input.service.id,
             });
-            //update dentist appointment Count
             await ctx.db
               .update(dentist)
               .set({
@@ -108,11 +105,10 @@ export const appsRouter = createTRPCRouter({
               "Reservation processing failed. Your card has not been charged and no email was sent.",
           });
         }
-        // Send email
         if (emailData) {
           try {
             console.log(`Sending email to ${emailData}`);
-            //await resendConfirmationEmail(emailData);
+            await resendConfirmationEmail(emailData);
           } catch (emailError) {
             console.error(
               "Warning: Appointment saved, but confirmation email failed:",
@@ -196,6 +192,8 @@ export const appsRouter = createTRPCRouter({
             appointmentCount: sql`${dentist.appointmentCount} - 1`,
           })
           .where(eq(dentist.id, input.dentistId));
+
+        // send an email notification
       } catch (error) {
         console.error("Error deleting appointment:", error);
         throw new Error("Failed to delete appointment");
@@ -241,11 +239,29 @@ export const appsRouter = createTRPCRouter({
       };
     }),
 
-  getLatest: adminProcedure.query(async ({ ctx }) => {
-    const data = await ctx.db.query.appointments.findFirst({
-      orderBy: (appointments, { desc }) => [desc(appointments.date)],
-    });
-
+  getLatest: publicProcedure.query(async ({ ctx }) => {
+    if (!ctx.session) {
+      return null
+    }
+    const data = await ctx.db
+      .select({
+        dentist: {
+          id: dentist.id,
+          name: dentist.name,
+        },
+        date: appointments.date,
+        startTime: appointments.startTime,
+      })
+      .from(appointments)
+      .where(
+        and(
+          gte(appointments.date, new Date()),
+          eq(appointments.userId, ctx.session.user.id)
+        )
+      )
+      .innerJoin(user, eq(appointments.userId, user.id))
+      .innerJoin(dentist, eq(appointments.dentistId, dentist.id))
+      .limit(1);
     return data ?? null;
   }),
 
@@ -366,6 +382,13 @@ export const appsRouter = createTRPCRouter({
           finalFollowUpDate.getTime() !== targetFollowUpDate.getTime(),
       };
     }),
+
+  getByUserId: protectedProcedure.query(async ({ ctx }) => {
+    return await ctx.db
+      .select()
+      .from(appointments)
+      .where(eq(appointments.userId, ctx.session.user.id));
+  }),
 
   getByDentistId: publicProcedure
     .input(

@@ -5,10 +5,8 @@ import { db } from "~/server/db";
 import { admin, magicLink } from "better-auth/plugins";
 import { resendMagicLinkEmail } from "../resend/send-email";
 
-
-
 export const auth = betterAuth({
-  baseURL: "http://localhost:3000", //env.FRONTEND_URL ??
+  baseURL: env.FRONTEND_URL, //env.FRONTEND_URL
   database: drizzleAdapter(db, {
     provider: "pg", // or "pg" or "mysql"
   }),
@@ -19,7 +17,7 @@ export const auth = betterAuth({
       sendMagicLink: async ({ email, token, url, metadata }, ctx) => {
         console.log("[Better-Auth]: DATA", { email, token, url, metadata });
         try {
-         void resendMagicLinkEmail({ email, token, url, metadata });
+          void resendMagicLinkEmail({ email, token, url, metadata });
         } catch (error) {
           console.error(error);
         }

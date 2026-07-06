@@ -18,12 +18,51 @@ export const servicesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.insert(service).values({
+      const serviceExists = await ctx.db.query.service.findFirst({
+        where: eq(service.name, input.name),
+      });
+      if (serviceExists) {
+        throw new Error("Service already exists");
+      }
+      const newService = await ctx.db.insert(service).values({
         name: input.name,
         estimatedTime: input.estimatedTime,
         priority: input.priority,
         description: input.description,
       });
+      return newService;
+    }),
+
+  delete: adminProcedure
+    .input(
+      z.object({
+        id: z.number(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.delete(service).where(eq(service.id, input.id));
+    }),
+
+  edit: adminProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        name: z.string().min(1).optional(),
+        estimatedTime: z.number().optional(),
+        priority: z.number().optional(),
+        description: z.string().min(1).max(100).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db
+        .update(service)
+        .set({
+          name: input.name,
+          estimatedTime: input.estimatedTime,
+          priority: input.priority,
+          description: input.description,
+        })
+        .where(eq(service.id, input.id));
     }),
 
   getCount: adminProcedure.query(async ({ ctx }) => {
@@ -38,26 +77,6 @@ export const servicesRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       await ctx.db.delete(service).where(eq(service.id, input.id));
-    }),
-
-  update: adminProcedure
-    .input(
-      z.object({
-        id: z.number(),
-        name: z.string().min(1),
-        estimatedTime: z.number().optional(),
-        description: z.string().min(1).max(500).optional(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      await ctx.db
-        .update(service)
-        .set({
-          name: input.name,
-          estimatedTime: input.estimatedTime,
-          description: input.description,
-        })
-        .where(eq(service.id, input.id));
     }),
 
   getAll: publicProcedure.query(async ({ ctx }) => {
