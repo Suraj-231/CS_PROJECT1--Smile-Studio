@@ -8,8 +8,7 @@ import {
 } from "~/server/api/trpc";
 import { TRPCError } from "@trpc/server";
 import { appointments, dentist, user, service } from "~/server/db/schema";
-import { resendConfirmationEmail } from "~/server/resend/send-email";
-
+import { resendConfirmationEmail, addAppointmentToGoogleCalendar } from "~/server/resend/send-email";
 export const appsRouter = createTRPCRouter({
   create: protectedProcedure
     .input(
@@ -24,6 +23,7 @@ export const appsRouter = createTRPCRouter({
         service: z.object({
           id: z.number(),
           name: z.string(),
+          estimatedTime: z.number(),
         }),
       }),
     )
@@ -62,6 +62,7 @@ export const appsRouter = createTRPCRouter({
           serviceName: string;
           dateStr: string;
           timeStr: string;
+          estimatedTime: number;
         } | null = null;
         try {
           await ctx.db.transaction(async (tx) => {
@@ -86,7 +87,9 @@ export const appsRouter = createTRPCRouter({
               serviceName: input.service.name,
               dateStr: input.localeDateForEmail, // "2026-07-15"
               timeStr: input.startTime, // "10:00:00"
+              estimatedTime: input.service.estimatedTime, // "90"
             };
+         
           });
         } catch (error: any) {
           if (
@@ -107,8 +110,9 @@ export const appsRouter = createTRPCRouter({
         }
         if (emailData) {
           try {
-            console.log(`Sending email to ${emailData}`);
+            console.log("Sending email to: ",emailData);
             await resendConfirmationEmail(emailData);
+            //await addAppointmentToGoogleCalendar(emailData);
           } catch (emailError) {
             console.error(
               "Warning: Appointment saved, but confirmation email failed:",

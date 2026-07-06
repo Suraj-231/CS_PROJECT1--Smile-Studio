@@ -84,7 +84,7 @@ export function ServiceCard(props: ServiceCardProps) {
   return (
     <div
       key={id}
-      onClick={() => book.setService({ id, priority, name })}
+      onClick={() => book.setService({ id, priority, name, estimatedTime: estimatedTime || 0 })}
       className={`
         ${book.service?.id === id && "border-primary border bg-primary text-white"}
         rounded-md cursor-pointer hover:shadow-xs

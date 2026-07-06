@@ -20,6 +20,7 @@ interface FollowUpProps {
       id: number;
       priority: number | null;
       name: string;
+      estimatedTime: number;
     };
   };
   onReady: () => void;
@@ -51,7 +52,7 @@ export function FollowUp({ prevApp, onReady }: FollowUpProps) {
   });
 
   async function handleConfirmFollowUp() {
-    if (!followUp || !service) return;
+    if (!followUp || !service || !followUpDate) return;
     await createFollowUp.mutateAsync({
       dentist,
       localeDateForEmail: date.toLocaleDateString(undefined, {
@@ -59,7 +60,7 @@ export function FollowUp({ prevApp, onReady }: FollowUpProps) {
         month: "long",
         day: "numeric",
       }),
-      date: date.toISOString(),
+      date: followUpDate.toISOString(),
       startTime,
       service,
     });
@@ -88,31 +89,38 @@ export function FollowUp({ prevApp, onReady }: FollowUpProps) {
     <div className="flex flex-col gap-6 ">
       {/* Header */}
       <div className="flex flex-col gap-1">
-        <div className=" gap-2 flex flex-col items-center">
+        <div className="flex flex-col items-center gap-2">
           <h2 className="text-lg font-semibold text-center">
-            Recommended Follow-Up
+            System Recommended Follow-up
           </h2>
+          <p className="text-sm text-muted-foreground text-center">
+            The system recommends a follow-up for appointment{" "}
+            <span className="font-medium text-foreground">{service.name}</span>{" "}
+            on{" "}
+            <span className="font-medium text-foreground">
+              {date.toLocaleDateString("en-US", { dateStyle: "long" })}
+            </span>{" "}
+            to a new date of{" "}
+            <span className="font-medium text-primary underline">
+              {followUpDate?.toLocaleDateString("en-US", {
+                dateStyle: "long",
+              })}
+            </span>
+            .
+          </p>
         </div>
-        <p className="text-sm text-muted-foreground ">
-          Based on your appointment, we suggest scheduling a follow-up with{" "}
-          <span className="font-medium text-foreground">
-            Dr. {dentist.name}.
-          </span>{" "}
-          You can confirm or skip this for now.
-        </p>
-        <p className="text-center text-sm text-muted-foreground">
-          Your follow-up appointment for{" "}
-          <span className="font-medium text-foreground">{service.name}</span> is
-          scheduled for{" "}
-          <span className="text-primary underline font-medium">
+
+        {/* <p className="text-center text-sm text-muted-foreground">
+          Recommended time: <span className="font-medium text-foreground">Dr. {dentist.name}</span> at{" "}
+          <span className="font-medium text-primary underline">
             {followUpDate?.toLocaleDateString("en-US", { dateStyle: "long" })}
           </span>{" "}
           at{" "}
-          <span className="text-primary underline font-medium">
+          <span className="font-medium text-primary underline">
             {startTime.slice(0, 5)}
           </span>
           .
-        </p>
+        </p> */}
       </div>
 
       {/* Calendar — highlights the suggested date */}

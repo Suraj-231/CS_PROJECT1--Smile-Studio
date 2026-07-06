@@ -771,6 +771,8 @@ export function EditAppointmentForm({
                 priority:
                   services?.find((s) => s.name === value)?.priority ?? 0,
                 name: value,
+                estimatedTime:
+                  services?.find((s) => s.name === value)?.estimatedTime ?? 0,
               })
             }
             value={book.service?.name || app?.services.name}

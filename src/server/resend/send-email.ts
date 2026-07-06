@@ -3,44 +3,162 @@ import {
   getAppointmentConfirmationHtml,
   getMagicLinkEmailHtml,
 } from "./templates";
+import { google } from "googleapis";
+import { generateGoogleCompatibleIcs } from "./ics";
+
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+const auth = new google.auth.JWT(
+  process.env.GOOGLE_CLIENT_EMAIL,
+  undefined,
+  process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"), // Handle newline formatting in env variables
+  ["https://www.googleapis.com/auth/calendar", "https://www.googleapis.com/auth/calendar.events"]
+);
+
+const calendar = google.calendar({ version: "v3", auth });
+
+interface CreateCalendarEventOptions {
+  patientEmail: string;
+  patientName: string;
+  dentistName: string;
+  serviceName: string;
+  date: Date;          // The base date of the appointment
+  startTime: string;   // e.g., "09:30:00"
+  estimatedTime: number; // Duration in minutes (e.g., 90)
+}
+
+export async function addAppointmentToGoogleCalendar({
+  patientEmail,
+  patientName,
+  dentistName,
+  serviceName,
+  date,
+  startTime,
+  estimatedTime,
+}: CreateCalendarEventOptions) {
+  try {
+    
+    // 1. Calculate precise ISO Start and End times
+    const [hours, minutes] = startTime.split(":").map(Number);
+    if(!hours || !minutes) {
+      throw new Error(`Invalid startTime format: ${startTime}`);
+    }
+    
+    const startDateTime = new Date(date);
+    startDateTime.setHours(hours, minutes, 0, 0);
+
+    const endDateTime = new Date(startDateTime);
+    endDateTime.setMinutes(endDateTime.getMinutes() + estimatedTime);
+
+    // 2. Build the structural Google Event payload
+    const eventPayload = {
+      summary: `Dental Appointment: ${serviceName}`,
+      location: "Your Dental Clinic Address, Nairobi, Kenya",
+      description: `Hello ${patientName},\n\nThis is an automated confirmation for your upcoming ${serviceName} with ${dentistName}.\n\nIf you need to reschedule or cancel, please contact administration at least 24 hours prior to your slot block.`,
+      start: {
+        dateTime: startDateTime.toISOString(),
+        timeZone: "Africa/Nairobi", // Set this to your local timezone context
+      },
+      end: {
+        dateTime: endDateTime.toISOString(),
+        timeZone: "Africa/Nairobi",
+      },
+      // Automatically triggers an invitation notification email directly from Google infrastructure
+      attendees: [{ email: patientEmail, displayName: patientName }],
+      reminders: {
+        useDefault: false,
+        overrides: [
+          { method: "email", minutes: 24 * 60 }, // 24 hours prior reminder
+          { method: "popup", minutes: 60 },      // 1 hour prior pop-up
+        ],
+      },
+    };
+
+    // 3. Insert the resource item into the primary calendar stream
+    const response = await calendar.events.insert({
+      calendarId: "primary", // Uses the main calendar associated with the service account or configured delegation
+      requestBody: eventPayload,
+      sendUpdates: "all", // Force Google to send the native calendar invitation system prompt
+    });
+
+    return {
+      success: true,
+      eventId: response.data.id,
+      htmlLink: response.data.htmlLink,
+    };
+  } catch (error) {
+    console.error("Failed to inject event to Google Calendar API:", error);
+    // Return graceful status instead of failing the parent transaction
+    return { success: false, error };
+  }
+}
 
 export async function resendConfirmationEmail(details: {
   email: string;
   patientName: string;
   dentistName: string;
   serviceName: string;
-  dateStr: string; // "2026-07-15"
-  timeStr: string; // "10:00:00"
+  dateStr: string;       // "2026-07-15"
+  timeStr?: string;      // "10:00:00"
+  startTime?: string;    // Backward-compatible alias
+  estimatedTime: number; // Duration in minutes (e.g., 90)
+  appointmentId: string | number;
 }) {
-  const { email, patientName, dentistName, serviceName, dateStr, timeStr } =
-    details;
+  const {
+    email,
+    patientName,
+    dentistName,
+    serviceName,
+    dateStr,
+    timeStr,
+    startTime,
+    estimatedTime,
+    appointmentId,
+  } = details;
 
-  // 1. Build a basic RFC-compliant iCalendar (.ics) string structure
-  // Formats time strings to match UTC / local calendar patterns (YYYYMMDDTHHMMSS)
-  const cleanDate = dateStr.replace(/-/g, "");
-  const cleanTime = timeStr.replace(/:/g, "").substring(0, 4); // "1000"
+  // 1. Resolve fallback time slot string gracefully
+  const resolvedTime = timeStr || startTime;
+  if (!resolvedTime) {
+    throw new Error("[RESEND]: Appointment time parameters are missing.");
+  }
 
-  const icsContent = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PROID:-//Clinic//Appointment//EN",
-    "BEGIN:VEVENT",
-    `SUMMARY:${serviceName} - ${dentistName}`,
-    `DESCRIPTION:Dental appointment for ${patientName} with ${dentistName}`,
-    `DTSTART:${cleanDate}T${cleanTime}00`,
-    // Estimate a standard 1-hour window closure block duration dynamically
-    `DTEND:${cleanDate}T${String(parseInt(cleanTime, 10) + 100).padStart(4, "0")}00`,
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ].join("\r\n");
+  // 2. Parse and normalize values safely for template displays
+  const baseDate = new Date(dateStr);
+  if (isNaN(baseDate.getTime())) {
+    throw new Error("[RESEND]: Invalid date format provided.");
+  }
 
-  // 2. Convert the string to a transport buffer block
+  // Format dates human-readably for the HTML template view context
+  const normalizedDate = baseDate.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  // Extract a clean display hour marker for the customer (e.g., "10:00 AM")
+  const [hours, minutes] = resolvedTime.split(":");
+  const hourNum = Number(hours);
+  const ampm = hourNum >= 12 ? "PM" : "AM";
+  const displayHour = hourNum % 12 || 12;
+  const normalizedTime = `${String(displayHour).padStart(2, "0")}:${minutes} ${ampm}`;
+
+  // 3. Compile the structural Google-compatible .ics string payload
+  const icsContent = generateGoogleCompatibleIcs({
+    serviceName,
+    dentistName,
+    date: baseDate,
+    startTime: resolvedTime,
+    estimatedTime,
+    appointmentId,
+  });
+
+  // 4. Convert the string to a transport buffer block
   const icsBuffer = Buffer.from(icsContent, "utf-8");
 
-  // 3. Dispatch directly through Resend
-  const { data, error } = await resend.emails.send({
+  // 5. Dispatch directly through Resend
+  const { error } = await resend.emails.send({
     from: "Dental Clinic <noreply@singularity.co.ke>",
     to: [email],
     subject: `Confirmed: Appointment for ${serviceName}`,
@@ -48,17 +166,18 @@ export async function resendConfirmationEmail(details: {
       patientName,
       dentistName,
       serviceName,
-      appointmentDate: dateStr,
-      appointmentTime: timeStr,
+      appointmentDate: normalizedDate,
+      appointmentTime: normalizedTime,
     }),
     attachments: [
       {
         filename: "invite.ics",
         content: icsBuffer,
-        contentType: "text/calendar",
+        contentType: "text/calendar; charset=utf-8; method=REQUEST",
       },
     ],
   });
+
   if (error) {
     console.log("[RESEND]:", error);
     throw new Error("[RESEND]: failed to send appointment confirmation email");
@@ -77,6 +196,7 @@ export async function resendMagicLinkEmail(details: {
     from: "Dental Clinic <noreply@singularity.co.ke>",
     to: [email],
     subject: "Smile Studio Authentication",
+    
     html: getMagicLinkEmailHtml({ email, token, url, metadata }),
   });
   if (error) {

@@ -12,6 +12,8 @@ export const env = createEnv({
         ? z.string()
         : z.string().optional(),
     BETTER_AUTH_GITHUB_CLIENT_ID: z.string(),
+    GOOGLE_PRIVATE_KEY: z.string(),
+    GOOGLE_CLIENT_EMAIL: z.string(),
     RESEND_API_KEY: z.string(),
     FRONTEND_URL: z.string(),
     BETTER_AUTH_GITHUB_CLIENT_SECRET: z.string(),
@@ -40,6 +42,8 @@ export const env = createEnv({
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     BETTER_AUTH_GOOGLE_CLIENT_ID: process.env.BETTER_AUTH_GOOGLE_CLIENT_ID,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
+    GOOGLE_PRIVATE_KEY: process.env.GOOGLE_PRIVATE_KEY,
+    GOOGLE_CLIENT_EMAIL: process.env.GOOGLE_CLIENT_EMAIL,
     BETTER_AUTH_GOOGLE_CLIENT_SECRET:
       process.env.BETTER_AUTH_GOOGLE_CLIENT_SECRET,
     BETTER_AUTH_GITHUB_CLIENT_ID: process.env.BETTER_AUTH_GITHUB_CLIENT_ID,

@@ -4,7 +4,7 @@ interface BookState {
   dentist: { id: number; name: string } | null;
   date: Date | undefined;
   startTime: string | null;
-  service: { id: number; priority: number | null; name: string } | null;
+  service: { id: number; priority: number | null; name: string, estimatedTime: number } | null;
 }
 
 interface BookAction {
@@ -16,6 +16,7 @@ interface BookAction {
     id: number;
     priority: number | null;
     name: string;
+    estimatedTime: number;
   }) => void;
 }
 

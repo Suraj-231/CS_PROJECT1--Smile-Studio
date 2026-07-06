@@ -58,6 +58,7 @@ type ConfirmedAppointment = {
     id: number;
     priority: number | null;
     name: string;
+    estimatedTime: number;
   };
 };
 
