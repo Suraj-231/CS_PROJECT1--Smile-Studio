@@ -6,7 +6,7 @@ import { DownloadIcon, SendIcon } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Button } from "~/components/ui/button";
-import { ClinicalSummaryReport } from "~/lib/pdfTemplate";
+import { SmileStudioPDFReport } from "~/lib/pdfTemplate";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import {
   Card,
@@ -83,6 +83,13 @@ const unifiedConfig = {
 export default function AdminPage() {
   const [pdfFile, setPdfFile] = useState<Blob | null>(null);
   const { data: session } = authClient.useSession();
+  const {data:usersWApps} = api.apps.getUsersWithAppointments.useQuery(
+    {
+      limit: 100,
+    },
+    { staleTime: 60 * 1000 },
+  );
+
   const { data: userCount, isLoading: userLoading } =
     api.users.getCount.useQuery();
   const { data: dentistCount, isLoading: dentistLoading } =
@@ -116,14 +123,13 @@ export default function AdminPage() {
         {trafficData && dentistData && serviceData && apps?.data && (
           <PDFDownloadLink
             document={
-              <ClinicalSummaryReport
+              <SmileStudioPDFReport
                 trafficData={trafficData}
                 dentistData={dentistData}
                 serviceData={serviceData}
-                appointmentCount={apps?.data?.length}
-                dentistCount={dentistCount}
-                serviceCount={serviceCount}
-                userCount={userCount}
+                userData = {usersWApps || []}
+                selectedMonthName={new Date().toLocaleString("default", { month: "long" })}
+                selectedYear={new Date().getFullYear()}
               />
             }
             fileName={`Clinic_Report${new Date().toLocaleDateString(undefined, {

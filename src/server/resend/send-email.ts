@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import {
   getAppointmentConfirmationHtml,
+  getDirectCancellationHtml,
   getMagicLinkEmailHtml,
 } from "./templates";
 import { google } from "googleapis";
@@ -105,6 +106,7 @@ export async function resendConfirmationEmail(details: {
   estimatedTime: number; // Duration in minutes (e.g., 90)
   appointmentId: string | number;
 }) {
+  
   const {
     email,
     patientName,
@@ -157,6 +159,7 @@ export async function resendConfirmationEmail(details: {
   // 4. Convert the string to a transport buffer block
   const icsBuffer = Buffer.from(icsContent, "utf-8");
 
+  console.log(`[RESEND]: Sending confirmation email to ${email} for appointment on ${normalizedDate} at ${normalizedTime}`);
   // 5. Dispatch directly through Resend
   const { error } = await resend.emails.send({
     from: "Dental Clinic <noreply@singularity.co.ke>",
@@ -184,6 +187,33 @@ export async function resendConfirmationEmail(details: {
   }
 }
 
+
+export async function resendCancellationEmail(details: {
+  email: string;
+  patientName: string;
+  dateStr: string;        // "2026-07-15"
+  timeStr?: string;       // "10:00:00"
+  startTime?: string;     // Backward-compatible alias
+  frontendUrl: string;    // e.g., "https://your-app.com"
+  clinicPhone?: string;   // Optional fallback phone number
+  clinicEmail?: string;   // Optional fallback support email
+}) {
+  console.log("[RESEND]: Sending cancellation email to", details.email);
+  const { data, error } = await resend.emails.send({
+    from: "Dental Clinic <noreply@singularity.co.ke>",
+    to: [details.email],
+    subject: "Smile Studio Authentication",
+    
+    html: getDirectCancellationHtml(details),
+  });
+  if (error) {
+    console.log("[RESEND]:", error);
+    throw new Error("[RESEND]: failed to send magic link email");
+  }
+}
+
+
+  
 export async function resendMagicLinkEmail(details: {
   email: string;
   token: string;
@@ -191,7 +221,7 @@ export async function resendMagicLinkEmail(details: {
   metadata: any;
 }) {
   const { email, token, url, metadata } = details;
-
+console.log("[RESEND]: Sending magic link email to", email);
   const { data, error } = await resend.emails.send({
     from: "Dental Clinic <noreply@singularity.co.ke>",
     to: [email],

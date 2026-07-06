@@ -1,323 +1,295 @@
 import React from "react";
-import {
-  Document,
-  Page,
-  Text,
-  View,
-  StyleSheet,
-  Font,
-} from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer";
 
-// Register default fonts for clean rendering weight distributions
+// Register default clean Helvetica styles for vector-precise PDF tracking
 Font.register({
   family: "Helvetica",
   fonts: [
-    {
-      src: "https://cdn.jsdelivr.net/astro-fonts/helvetica.ttf",
-      fontWeight: "normal",
-    },
-    {
-      src: "https://cdn.jsdelivr.net/astro-fonts/helvetica-bold.ttf",
-      fontWeight: "bold",
-    },
+    { src: "https://cdn.jsdelivr.net/astro-fonts/helvetica.ttf", fontWeight: "normal" },
+    { src: "https://cdn.jsdelivr.net/astro-fonts/helvetica-bold.ttf", fontWeight: "bold" },
   ],
 });
 
-// Explicit react-pdf structural layout tokens
 const styles = StyleSheet.create({
   page: {
-    padding: 30,
-    backgroundColor: "#ffffff",
+    padding: 40,
+    backgroundColor: "#ffffff", // Pure crisp white page canvas
     fontFamily: "Helvetica",
   },
-
-  // Header Blocks
+  
+  // Clean Balanced Header Block
   headerContainer: {
-    borderBottomWidth: 2,
-    borderBottomColor: "#69d2cb",
-    paddingBottom: 12,
-    marginBottom: 20,
     display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
+    paddingBottom: 10,
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#0f172a",
-  },
-  headerSubtitle: {
-    fontSize: 9,
-    color: "#64748b",
-    marginTop: 2,
-  },
-  headerMeta: {
-    fontSize: 9,
-    color: "#64748b",
-    textAlign: "right",
-  },
-
-  // Section Typography
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "bold",
-    color: "#0f172a",
-    marginBottom: 10,
-    marginTop: 10,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-
-  // KPI High-Density Layout Grid
-  kpiRow: {
-    display: "flex",
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 20,
-  },
-  kpiCard: {
-    flex: 1,
-    backgroundColor: "#1c232b", // oklch(0.275 0.011 216.9) Hex conversion
-    borderRadius: 8,
-    padding: 12,
+  headerLeft: {
     display: "flex",
     flexDirection: "column",
   },
-  kpiLabel: {
-    fontSize: 8,
-    color: "#69d2cb", // Primary Accent Color
+  mainTitle: {
+    fontSize: 26,
     fontWeight: "bold",
-    textTransform: "uppercase",
+    color: "#69d2cb", // Your signature brand tone
+    letterSpacing: -0.5,
+  },
+  subTitle: {
+    fontSize: 10,
+    color: "#64748b", // Slate muted gray text
+    marginTop: 3,
+  },
+  headerRight: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-end",
+  },
+  dateHeading: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#69d2cb",
+  },
+  
+  // Crisp Solid Divider Line 
+  headerDivider: {
+    height: 1.5,
+    backgroundColor: "#69d2cb",
+    marginTop: 8,
+    marginBottom: 24,
+  },
+
+  // Section Descriptors
+  tableSectionTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#334155", // Deep Slate
+    marginTop: 16,
     marginBottom: 4,
   },
-  kpiValue: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#ffffff",
+  tableSectionDescription: {
+    fontSize: 9,
+    color: "#64748b", // Slate subtitle text
+    marginBottom: 10,
   },
 
-  // Two-Column Grid Row
-  chartGridRow: {
+  // Flat Minimalist Table Component Layout
+  tableWrapper: {
+    display: "flex",
+    flexDirection: "column",
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 6,
+    overflow: "hidden",
+    marginBottom: 24,
+  },
+  tableHeaderRow: {
     display: "flex",
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 15,
-  },
-  chartColumn: {
-    flex: 1,
-  },
-
-  // Flat Table Lists (Replacing Recharts inside native PDF vector boundaries)
-  tableContainer: {
-    backgroundColor: "#f8fafc",
-    borderRadius: 8,
-    padding: 10,
-  },
-  tableRow: {
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "space-between",
+    backgroundColor: "#f8fafc", // Light clean row separation header tint
     borderBottomWidth: 1,
     borderBottomColor: "#e2e8f0",
-    paddingVertical: 5,
-    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
-  tableRowLast: {
+  tableDataRow: {
     display: "flex",
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f5f9",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     alignItems: "center",
   },
-  tableLabel: {
-    fontSize: 9,
-    color: "#334155", // Slate primary text
+  tableDataRowLast: {
+    display: "flex",
+    flexDirection: "row",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignItems: "center",
   },
-  tableValue: {
+  
+  // Flexible Column Width Anchors
+  thText: {
     fontSize: 9,
     fontWeight: "bold",
-    color: "#0f172a",
+    color: "#475569", // Dark Slate
+    textTransform: "uppercase",
+  },
+  tdText: {
+    fontSize: 10,
+    color: "#334155", // Primary readable body Slate
+  },
+  colLong: {
+    flex: 2,
+  },
+  colShort: {
+    flex: 1,
+    textAlign: "right",
   },
 
-  // Visual Horizontal Rule Dividers
-  divider: {
-    height: 1,
-    backgroundColor: "#e2e8f0",
-    marginVertical: 12,
-  },
-
-  // Fixed Bottom Page Numbering Signposts
+  // Bottom Fixed Footer Page Counters
   footerText: {
     position: "absolute",
-    bottom: 20,
-    left: 30,
-    right: 30,
+    bottom: 25,
+    left: 40,
+    right: 40,
     fontSize: 8,
     color: "#94a3b8",
     textAlign: "center",
     borderTopWidth: 1,
     borderTopColor: "#f1f5f9",
-    paddingTop: 8,
+    paddingTop: 10,
   },
 });
 
-interface ClinicalSummaryReportProps {
-  trafficData: { timeSlot: string; appointments: number | undefined }[];
+interface SmileStudioPDFReportProps {
+  trafficData: { timeSlot: string; appointments: number|undefined }[];
   dentistData: { dentist: string; appointments: number }[];
   serviceData: { service: string; volume: number }[];
-
-  // Executive Dashboard Placeholder Count Projections
-  appointmentCount?: number;
-  dentistCount?: number;
-  serviceCount?: number;
-  userCount?: number;
+  userData: { id: string; name: string; email: string; totalVisits: number }[];
+  selectedMonthName: string; // e.g., "July"
+  selectedYear: number;       // e.g., 2026
 }
 
-export function ClinicalSummaryReport({
+export function SmileStudioPDFReport({
   trafficData = [],
   dentistData = [],
   serviceData = [],
-  appointmentCount = 0,
-  dentistCount = 0,
-  serviceCount = 0,
-  userCount = 0,
-}: ClinicalSummaryReportProps) {
-  // Slice lists safely to guarantee elements don't cause trailing overflow pages
-  const primaryTraffic = trafficData.slice(0, 8);
-  const topDentists = dentistData.slice(0, 5);
-  const primaryServices = serviceData.slice(0, 5);
-
+  userData = [],
+  selectedMonthName = new Date().toLocaleString("default", { month: "long" }),
+  selectedYear = new Date().getFullYear(),
+}: SmileStudioPDFReportProps) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* ================= HEADER SECTION ================= */}
+        
+        {/* ================= HEADER SEGMENT ================= */}
         <View style={styles.headerContainer} fixed>
-          <View>
-            <Text style={styles.headerTitle}>Clinical Summary Report</Text>
-            <Text style={styles.headerSubtitle}>Clinical Summary Report</Text>
+          <View style={styles.headerLeft}>
+            <Text style={styles.mainTitle}>Smile Studio Report</Text>
+            <Text style={styles.subTitle}>summaries generated from the system</Text>
           </View>
-          <View>
-            <Text style={styles.headerMeta}>Generated: June 2026</Text>
-            <Text style={styles.headerMeta}>
-              Scope: Monthly Analytics Summary
-            </Text>
+          <View style={styles.headerRight}>
+            <Text style={styles.dateHeading}>{`${selectedMonthName} ${selectedYear}`}</Text>
           </View>
         </View>
 
-        {/* ================= 4-COLUMN DATA KPI CARD ROW ================= */}
-        <View style={styles.kpiRow}>
-          <View style={styles.kpiCard}>
-            <Text style={styles.kpiLabel}>Total Appointments</Text>
-            <Text style={styles.kpiValue}>{appointmentCount}</Text>
-          </View>
-          <View style={styles.kpiCard}>
-            <Text style={styles.kpiLabel}>Patients</Text>
-            <Text style={styles.kpiValue}>{userCount}</Text>
-          </View>
-          <View style={styles.kpiCard}>
-            <Text style={styles.kpiLabel}>Dentists</Text>
-            <Text style={styles.kpiValue}>{dentistCount}</Text>
-          </View>
-          <View style={styles.kpiCard}>
-            <Text style={styles.kpiLabel}>Services</Text>
-            <Text style={styles.kpiValue}>{serviceCount}</Text>
+        {/* Brand Accent Divider Border Line */}
+        <View style={styles.headerDivider} fixed />
+
+
+        {/* ================= CLINICAL TREATMENT PERFORMANCE TABLE ================= */}
+        <View>
+          <Text style={styles.tableSectionTitle}>Treatment Allocations</Text>
+          <Text style={styles.tableSectionDescription}>
+            Volumetric share metrics mapping the distribution density of completed dental service categories.
+          </Text>
+          
+          <View style={styles.tableWrapper}>
+            <View style={styles.tableHeaderRow}>
+              <Text style={[styles.thText, styles.colLong]}>Dental Treatment Service Type</Text>
+              <Text style={[styles.thText, styles.colShort]}>Volume Share</Text>
+            </View>
+            {serviceData.map((item, idx) => (
+              <View 
+                key={item.service} 
+                style={idx === serviceData.length - 1 ? styles.tableDataRowLast : styles.tableDataRow}
+              >
+                <Text style={[styles.tdText, styles.colLong]}>{item.service}</Text>
+                <Text style={[styles.tdText, styles.colShort, { fontWeight: "bold" }]}>{item.volume} Units</Text>
+              </View>
+            ))}
           </View>
         </View>
 
-        {/* ================= LOWER DATA VIEWS (SIDE BY SIDE GRID) ================= */}
-        <Text style={styles.sectionTitle}>
-          Practitioner Workloads & Services Share
-        </Text>
-        <View style={styles.chartGridRow}>
-          {/* Left Column Component: Dentist Distribution List */}
-          <View style={styles.chartColumn}>
-            <View style={styles.tableContainer}>
-              {topDentists.map((item, idx) => (
-                <View
-                  key={item.dentist}
-                  style={
-                    idx === topDentists.length - 1
-                      ? styles.tableRowLast
-                      : styles.tableRow
-                  }
-                >
-                  <Text style={styles.tableLabel}>{item.dentist}</Text>
-                  <Text style={styles.tableValue}>
-                    {item.appointments} Appointments
-                  </Text>
+        {/* ================= NEW: TRAFFIC DATA CHRONOLOGICAL DISTRIBUTION ================= */}
+        <View>
+          <Text style={styles.tableSectionTitle}>Peak Operational Traffic</Text>
+          <Text style={styles.tableSectionDescription}>
+            Hourly appointment distribution windows highlighting the clinic's busiest operational slots.
+          </Text>
+          
+          <View style={styles.tableWrapper}>
+            <View style={styles.tableHeaderRow}>
+              <Text style={[styles.thText, styles.colLong]}>Time Interval Block</Text>
+              <Text style={[styles.thText, styles.colShort]}>Appointment Count</Text>
+            </View>
+            {trafficData.map((item, idx) => (
+              <View 
+                key={item.timeSlot} 
+                style={idx === trafficData.length - 1 ? styles.tableDataRowLast : styles.tableDataRow}
+              >
+                <Text style={[styles.tdText, styles.colLong]}>Interval Session: {item.timeSlot}</Text>
+                <Text style={[styles.tdText, styles.colShort, { fontWeight: "bold" }]}>{item.appointments} Cases</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* ================= PRACTITIONER WORKLOAD MATRIX TABLE ================= */}
+        <View>
+          <Text style={styles.tableSectionTitle}>Specialist Case Operations</Text>
+          <Text style={styles.tableSectionDescription}>
+            Operational load configurations indicating individual medical case loads assigned per dentist.
+          </Text>
+          
+          <View style={styles.tableWrapper}>
+            <View style={styles.tableHeaderRow}>
+              <Text style={[styles.thText, styles.colLong]}>Medical Practitioner Name</Text>
+              <Text style={[styles.thText, styles.colShort]}>Allocated Cases</Text>
+            </View>
+            {dentistData.map((item, idx) => (
+              <View 
+                key={item.dentist} 
+                style={idx === dentistData.length - 1 ? styles.tableDataRowLast : styles.tableDataRow}
+              >
+                <Text style={[styles.tdText, styles.colLong]}>{item.dentist}</Text>
+                <Text style={[styles.tdText, styles.colShort, { fontWeight: "bold" }]}>{item.appointments} Bookings</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* ================= COMPREHENSIVE USER DATA REGISTRY TABLE ================= */}
+        <View break>
+          <Text style={styles.tableSectionTitle}>Active Patient Registry Metrics</Text>
+          <Text style={styles.tableSectionDescription}>
+            Detailed administrative log summarizing user system metrics, secure email endpoints, and engagement records.
+          </Text>
+          
+          <View style={styles.tableWrapper}>
+            <View style={styles.tableHeaderRow}>
+              <Text style={[styles.thText, { width: "80px" }]}>Patient ID</Text>
+              <Text style={[styles.thText, { flex: 1 }]}>Full Name & Account Address</Text>
+              <Text style={[styles.thText, { width: "70px", textAlign: "right" }]}>Total Visits</Text>
+            </View>
+            {userData.map((user, idx) => (
+              <View 
+                key={user.id} 
+                style={idx === userData.length - 1 ? styles.tableDataRowLast : styles.tableDataRow}
+              >
+                <Text style={[styles.tdText, { width: "80px", color: "#64748b", fontSize: 9 }]}>{user.id}</Text>
+                <View style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                  <Text style={[styles.tdText, { fontWeight: "bold" }]}>{user.name}</Text>
+                  <Text style={{ fontSize: 8, color: "#64748b", marginTop: 1 }}>{user.email}</Text>
                 </View>
-              ))}
-              {topDentists.length === 0 && (
-                <Text style={styles.tableLabel}>
-                  No specialist operations logged.
-                </Text>
-              )}
-            </View>
-          </View>
-
-          {/* Right Column Component: Treatment Service Volumetric Share */}
-          <View style={styles.chartColumn}>
-            <View style={styles.tableContainer}>
-              {primaryServices.map((item, idx) => (
-                <View
-                  key={item.service}
-                  style={
-                    idx === primaryServices.length - 1
-                      ? styles.tableRowLast
-                      : styles.tableRow
-                  }
-                >
-                  <Text style={styles.tableLabel}>{item.service}</Text>
-                  <Text style={styles.tableValue}>
-                    {item.volume} Appointments
-                  </Text>
-                </View>
-              ))}
-              {primaryServices.length === 0 && (
-                <Text style={styles.tableLabel}>
-                  No catalog allocation distributions found.
-                </Text>
-              )}
-            </View>
+                <Text style={[styles.tdText, { width: "70px", textAlign: "right" }]}>{user.totalVisits} sessions</Text>
+              </View>
+            ))}
           </View>
         </View>
 
-        <View style={styles.divider} />
+        
 
-        {/* ================= CHRONOLOGICAL TRAFFIC DISTRIBUTION ================= */}
-        <Text style={styles.sectionTitle}>Hourly Traffic Distribution</Text>
-        <View style={styles.tableContainer}>
-          {primaryTraffic.map((item, idx) => (
-            <View
-              key={item.timeSlot}
-              style={
-                idx === primaryTraffic.length - 1
-                  ? styles.tableRowLast
-                  : styles.tableRow
-              }
-            >
-              <Text style={styles.tableLabel}>{item.timeSlot}</Text>
-              <Text style={styles.tableValue}>
-                {item.appointments} Bookings
-              </Text>
-            </View>
-          ))}
-          {primaryTraffic.length === 0 && (
-            <Text style={styles.tableLabel}>
-              No chronological distribution slots tracking.
-            </Text>
-          )}
-        </View>
-
-        {/* ================= FOOTER RUNTIME SIGNPOSTING ================= */}
-        <Text
-          style={styles.footerText}
-          render={({ pageNumber, totalPages }) =>
-            `Page ${pageNumber} of ${totalPages}`
-          }
-          fixed
+        {/* Dynamic Safe Footer Tracker */}
+        <Text 
+          style={styles.footerText} 
+          render={({ pageNumber, totalPages }) => `Smile Studio Executive Intelligence • Page ${pageNumber} of ${totalPages}`} 
+          fixed 
         />
+        
       </Page>
     </Document>
   );

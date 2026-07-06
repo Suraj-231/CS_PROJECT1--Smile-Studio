@@ -140,7 +140,7 @@ export default function ProfilePage() {
 
 
   if (!session) {
-    router.push("/auth");
+    router.push("/auth/sign-in");
     return null;
   }
 
@@ -246,7 +246,6 @@ export default function ProfilePage() {
             ) : (
               apps.data.map((app) => {
                 const isUpcoming = new Date(app.date) >= new Date();
-
                 if (isUpcoming) {
                   return (
                     <div
@@ -365,39 +364,7 @@ export default function ProfilePage() {
                               </DialogFooter>
                             </DialogContent>
                           </Dialog>
-                          <Dialog>
-                            <DialogTrigger asChild className="text-destructive">
-                              <Trash size={16} />
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Delete Appointment</DialogTitle>
-                                <DialogDescription>
-                                  Are you sure you want to delete this
-                                  appointment?
-                                </DialogDescription>
-                              </DialogHeader>
-                              <DialogFooter>
-                                <Button
-                                  variant="ghost"
-                                  onClick={() => setPage(page - 1)}
-                                >
-                                  Cancel
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  onClick={async () =>
-                                    await deleteAppointment.mutateAsync({
-                                      appointmentId: app.id,
-                                      dentistId: app.dentist.id,
-                                    })
-                                  }
-                                >
-                                  Delete
-                                </Button>
-                              </DialogFooter>
-                            </DialogContent>
-                          </Dialog>
+                          
                         </div>
                       </div>
 

@@ -16,6 +16,8 @@ import {
   DialogTitle,
   DialogTrigger,
   Dialog,
+  DialogFooter,
+  DialogDescription,
 } from "~/components/ui/dialog";
 import {
   DropdownMenu,
@@ -168,7 +170,7 @@ export function EventCalendar() {
                   })}
                 </DialogTitle>
               </DialogHeader>
-              <div className="grid">
+              <div className="grid overflow-auto gap-2 max-h-[400px]">
                 {apps
                   ?.filter((app) => app.date.getDate() === day)
                   .map((app, id) => (
@@ -209,7 +211,22 @@ export function Event(event: EventProps) {
   const { user, service, date, startTime, dentist, appointmentId } =
     event.props;
   const router = useRouter();
+  const utils = api.useUtils()
+
+  const delApp = api.apps.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Appointment deleted successfully");
+      utils.apps.getAllByMonthAndYear.invalidate();
+    },
+    onError: (error) => {
+      toast.error("Failed to delete appointment", {
+        description: error.message,
+      });
+    },
+  });
+    
   return (
+
     <div className="cursor-pointer py-2 px-2 justify-between rounded-md hover:bg-muted flex items-center transition-all duration-300 p-1 text-xs">
       <div className="flex items-center gap-2">
         <Avatar>
@@ -242,9 +259,15 @@ export function Event(event: EventProps) {
               <PenLineIcon className="mr-2" />
               Edit
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive hover:text-destructive/80 ">
-              <Trash className="mr-2" />
-              Remove
+            <DropdownMenuItem variant="destructive"
+                      onClick={() => delApp.mutate({ 
+                            appointmentId: appointmentId,
+                            dentistId: dentist.id,
+                       })}>
+              
+                   <Trash />
+                      Delete
+                    
             </DropdownMenuItem>
           </DropdownMenuGroup>
         </DropdownMenuContent>

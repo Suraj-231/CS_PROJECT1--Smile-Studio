@@ -195,7 +195,7 @@ export function Header() {
                 </Button>
               </Link>
               <Link href="/auth/sign-up">
-                <Button variant={'default'}>
+                <Button variant={'outline'}>
                   Create an account
                   <ChevronRight />
                 </Button>

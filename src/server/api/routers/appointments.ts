@@ -8,7 +8,7 @@ import {
 } from "~/server/api/trpc";
 import { TRPCError } from "@trpc/server";
 import { appointments, dentist, user, service } from "~/server/db/schema";
-import { resendConfirmationEmail, addAppointmentToGoogleCalendar } from "~/server/resend/send-email";
+import { resendConfirmationEmail, addAppointmentToGoogleCalendar, resendCancellationEmail } from "~/server/resend/send-email";
 export const appsRouter = createTRPCRouter({
   create: protectedProcedure
     .input(
@@ -124,6 +124,50 @@ export const appsRouter = createTRPCRouter({
       }
     }),
 
+
+    getUsersWithAppointments: publicProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(100).default(50),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { limit } = input;
+
+      try {
+        // Left join users with appointments to count total historical sessions per user
+        const patientRegistry = await ctx.db
+          .select({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            // SQL aggregate counting the matching rows in the appointments table
+            totalVisits: sql<number>`cast(count(${appointments.id}) as integer)`,
+          })
+          .from(user)
+          .leftJoin(appointments, eq(user.id, appointments.userId))
+          .groupBy(user.id)
+          .orderBy(desc(sql`count(${appointments.id})`)) 
+          .limit(limit);
+
+      
+        return patientRegistry.map((patient) => ({
+          id: patient.id,
+          name: patient.name || "Unknown Patient",
+          email: patient.email,
+          totalVisits: patient.totalVisits ?? 0,
+        }));
+
+      } catch (error) {
+        console.error("Database analytics aggregation failure:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to compile analytical registry datasets.",
+        });
+      }
+    }),
+
+
   getById: publicProcedure
     .input(
       z.object({
@@ -187,9 +231,47 @@ export const appsRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       try {
-        await ctx.db
+        const appointmentDetails = await ctx.db
+          .select({
+            id: appointments.id,
+            date: appointments.date,
+            startTime: appointments.startTime,
+            email: user.email,
+            patientName: user.name,
+            dentistName: dentist.name,
+            serviceName: service.name,
+          })
+          .from(appointments)
+          .innerJoin(user, eq(appointments.userId, user.id))
+          .innerJoin(dentist, eq(appointments.dentistId, dentist.id))
+          .innerJoin(service, eq(appointments.service, service.id))
+          .where(eq(appointments.id, input.appointmentId))
+          .limit(1);
+
+        const appointmentDetail = appointmentDetails[0];
+
+        if (!appointmentDetail) {
+          throw new Error("Appointment not found");
+        }
+
+        const deletedAppointments = await ctx.db
           .delete(appointments)
-          .where(eq(appointments.id, input.appointmentId));
+          .where(eq(appointments.id, input.appointmentId))
+          .returning({
+            id: appointments.id,
+            userId: appointments.userId,
+            date: appointments.date,
+            startTime: appointments.startTime,
+            dentistId: appointments.dentistId,
+            serviceId: appointments.service,
+          });
+
+        const deletedAppointment = deletedAppointments[0];
+
+        if (!deletedAppointment) {
+          throw new Error("Appointment not found");
+        }
+
         await ctx.db
           .update(dentist)
           .set({
@@ -197,7 +279,16 @@ export const appsRouter = createTRPCRouter({
           })
           .where(eq(dentist.id, input.dentistId));
 
-        // send an email notification
+        await resendCancellationEmail({
+          email: appointmentDetail.email,
+          patientName: appointmentDetail.patientName ?? "Patient",
+          dateStr: appointmentDetail.date.toISOString(),
+          timeStr: appointmentDetail.startTime,
+          frontendUrl:
+            process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000",
+          clinicPhone: process.env.CLINIC_PHONE,
+          clinicEmail: process.env.CLINIC_EMAIL,
+        });
       } catch (error) {
         console.error("Error deleting appointment:", error);
         throw new Error("Failed to delete appointment");
