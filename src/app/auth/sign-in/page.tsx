@@ -15,18 +15,17 @@ export default function SignInForm() {
 
   async function handleSignIn() {
     setLoading(true);
-    try {
-      await authClient.signIn.email({
+      const {data, error} = await authClient.signIn.email({
         email: formData.email,
         password: formData.password,
         callbackURL: "/profile",
       });
-    } catch (error) {
-      toast.error("Error logging in.", { description: "Please try again." });
-      console.log(error);
-    } finally {
+      if (error) {
+        console.log("Error logging in:", error);
+        toast.error("Error logging in.", { description: error.message });
+      }
       setLoading(false);
-    }
+    
   }
 
   return (

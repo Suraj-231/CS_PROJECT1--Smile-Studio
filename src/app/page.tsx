@@ -22,7 +22,7 @@ export default async function Home() {
               absolute confidence.
             </p>
             <div className="mt-8 flex gap-4">
-              <Link href="/auth">
+              <Link href="/auth/sign-in">
                 <Button
                   variant="ghost"
                   className="p-4 bg-white rounded-lg h-10"

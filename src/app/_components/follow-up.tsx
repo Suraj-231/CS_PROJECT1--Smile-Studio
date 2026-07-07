@@ -7,6 +7,7 @@ import { CalendarCheck, Clock, UserCheck } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 interface FollowUpProps {
   prevApp: {
@@ -29,11 +30,12 @@ interface FollowUpProps {
 export function FollowUp({ prevApp, onReady }: FollowUpProps) {
   const { dentist, date, startTime, service } = prevApp;
   const readyCalled = useRef(false);
+  const router = useRouter();
 
   const createFollowUp = api.apps.create.useMutation({
     onSuccess: () => {
       toast.success("Follow-up created successfully");
-      redirect("/profile");
+      router.push("/profile");
     },
     onError: (error) => {
       toast.error("Failed to create follow-up", { description: error.message });

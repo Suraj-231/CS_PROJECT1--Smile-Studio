@@ -33,6 +33,22 @@ export const servicesRouter = createTRPCRouter({
       return newService;
     }),
 
+    getById:adminProcedure
+    .input(
+      z.object({
+        serviceId: z.number(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const serviceById = await ctx.db.query.service.findFirst({
+        where: eq(service.id, input.serviceId),
+      });
+      if (!serviceById) {
+        throw new Error("Service not found");
+      }
+      return serviceById;
+    }),
+
   delete: adminProcedure
     .input(
       z.object({
@@ -50,7 +66,7 @@ export const servicesRouter = createTRPCRouter({
         name: z.string().min(1).optional(),
         estimatedTime: z.number().optional(),
         priority: z.number().optional(),
-        description: z.string().min(1).max(100).optional(),
+        description: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

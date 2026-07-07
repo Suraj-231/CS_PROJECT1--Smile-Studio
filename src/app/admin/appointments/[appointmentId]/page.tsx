@@ -229,6 +229,13 @@ export default function AppointmentPage({
           </p>
         </div>
       </div>
+      {appointmentRecord.appointments.date < new Date() && (
+        <div className="bg-muted text-muted-foreground border border-destructive/50 p-4 rounded-lg">
+          <p className="text-sm ">
+            This appointment has already passed.
+          </p>
+        </div>
+      )}
       <div className="mx-auto flex max-w-6xl items-start justify-center gap-5">
         <section className="w-full max-w-2xl rounded-lg bg-muted p-5 md:p-7">
           <div className="flex items-start justify-between gap-4">
@@ -256,7 +263,7 @@ export default function AppointmentPage({
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" variant="outline" className=" ">
+                <Button  type="button" variant="outline" className=" ">
                   <Settings size={16} />
                 </Button>
               </DropdownMenuTrigger>
@@ -266,7 +273,9 @@ export default function AppointmentPage({
               >
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setShowGeneratedPanel(true)}>
+                <DropdownMenuItem 
+                disabled={appointmentRecord.appointments.date < new Date()}
+                onClick={() => setShowGeneratedPanel(true)}>
                   <WandSparkles size={14} />
                   Reschedule
                 </DropdownMenuItem>
@@ -275,7 +284,10 @@ export default function AppointmentPage({
                   Hide Reschedule Panel
                 </DropdownMenuItem>*/}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onClick={handleDelete}>
+                <DropdownMenuItem 
+                disabled={appointmentRecord.appointments.date < new Date()}
+                
+                variant="destructive" onClick={handleDelete}>
                   <Trash2 size={14} />
                   Delete
                 </DropdownMenuItem>

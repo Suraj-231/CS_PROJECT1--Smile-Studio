@@ -12,6 +12,7 @@ import {
   Mail,
   ShieldCheck,
 } from "lucide-react";
+import Link from "next/link";
 import { api } from "~/trpc/react";
 import { AddDentistForm, AddUserForm } from "~/app/_components/forms";
 import { Button } from "~/components/ui/button";
@@ -86,15 +87,7 @@ export default function PatientPage() {
   const totalPages = users?.totalPages ?? 1;
   const visiblePage = users?.page ?? currentPage;
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedSearch]);
 
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
 
   const { data: dentists, isLoading: loadingDentists } =
     api.dentists.getAll.useQuery();
@@ -290,12 +283,15 @@ export default function PatientPage() {
                                         No appointments found.
                                       </p>
                                     ) : (
+
                                       <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                                         {userData.map(
                                           ({ appointments: appt }) => (
+                                            <Link 
+                                            href={`/admin/appointments/${appt.id}`} key={appt.id}>
                                             <div
-                                              key={appt.id}
-                                              className={`flex w-full items-center gap-2 rounded-full p-1 text-xs sm:w-52 ${appt.date > new Date() ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}
+                                              
+                                              className={`flex w-full items-center cursor-pointer gap-2 rounded-full p-1 text-xs sm:w-52 ${appt.date > new Date() ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}
                                             >
                                               <span className="flex items-center gap-1">
                                                 <CalendarIcon className="h-3 w-3" />
@@ -313,6 +309,7 @@ export default function PatientPage() {
                                                 {appt.startTime?.slice(0, 5)}
                                               </span>
                                             </div>
+                                            </Link>
                                           ),
                                         )}
                                       </div>
@@ -428,7 +425,7 @@ export default function PatientPage() {
               aria-label="Previous page"
               disabled={currentPage <= 1 || usersLoading}
               onClick={() =>
-                setCurrentPage((prev) => Math.max(1, prev - 1))
+                setCurrentPage(currentPage-1)
               }
             >
               <ChevronLeft className="h-4 w-4" />
@@ -443,7 +440,7 @@ export default function PatientPage() {
               aria-label="Next page"
               disabled={currentPage >= totalPages || usersLoading}
               onClick={() =>
-                setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                setCurrentPage(currentPage+1)
               }
             >
               <ChevronRight className="h-4 w-4" />
