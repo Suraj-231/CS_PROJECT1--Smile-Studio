@@ -722,12 +722,14 @@ export const appsRouter = createTRPCRouter({
     .input(
       z.object({
         id: z.number(),
+        dateForEmail: z.string(),
         date: z.string().datetime().pipe(z.coerce.date()),
         startTime: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const { id, date, startTime } = input;
+      
       const updated = await ctx.db
         .update(appointments)
         .set({ date, startTime })
@@ -738,6 +740,42 @@ export const appsRouter = createTRPCRouter({
           ),
         )
         .returning({ id: appointments.id, date: appointments.date });
+
+        const rescheduledApp = await ctx.db.select({
+          user:{
+            email: user.email,
+            name: user.name,
+          },
+          dentist:{
+            id: dentist.id,
+            name: dentist.name,
+          },
+          service:{
+            id: service.id,
+            name: service.name,
+            estimatedTime: service.estimatedTime,
+          },
+          date: appointments.date,
+          startTime: appointments.startTime,
+        }).from(appointments)
+        .innerJoin(user, eq(appointments.userId, user.id))
+        .innerJoin(dentist, eq(appointments.dentistId, dentist.id))
+        .innerJoin(service, eq(appointments.service, service.id))
+        .where(eq(appointments.id, id))
+        .limit(1);
+
+        if(rescheduledApp[0]){
+          await resendConfirmationEmail({
+            appointmentId: input.id,
+            email: rescheduledApp[0].user.email,
+            patientName: rescheduledApp[0].user.name,
+            dentistName: rescheduledApp[0].dentist.name,
+            serviceName: rescheduledApp[0].service.name,
+            dateStr: input.dateForEmail,
+            timeStr: rescheduledApp[0].startTime,
+            estimatedTime: rescheduledApp[0].service.estimatedTime,
+          });
+        }
 
       if (updated.length === 0) {
         throw new TRPCError({

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "next build",
+    "build": "node init && next build",
     "check": "biome check .",
     "check:unsafe": "biome check --write --unsafe .",
     "check:write": "biome check --write .",
@@ -12,9 +12,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "dev": "next dev --turbo",
+    "dev": "node init && next dev --turbo",
     "preview": "next build && next start",
-    "start": "next start",
+    "start": "node init && next start",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

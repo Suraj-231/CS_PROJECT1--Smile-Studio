@@ -64,6 +64,7 @@ const GRADIENTS = [
 const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export default function ProfilePage() {
+  const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [selectedRescheduledDate, setSelectedRescheduledDate] = useState<{
     id: number | null;
@@ -341,11 +342,18 @@ export default function ProfilePage() {
                                 </DialogClose>
                                 {selectedRescheduledDate && (
                                   <Button
+                                  disabled={loading}
                                     onClick={async () => {
+                                      setLoading(true);
                                       console.log(
                                         `Rescheduling original appointment date: ${selectedApp.date} to ${selectedRescheduledDate.date}`,
                                       );
                                       await reschduleApp.mutateAsync({
+                                        dateForEmail: new Date(selectedRescheduledDate.date).toLocaleDateString(undefined, {
+                                          year: "numeric",
+                                          month: "long",
+                                          day: "numeric",
+                                        }),
                                         id: selectedRescheduledDate.appointmentId,
                                         date: selectedRescheduledDate.date,
                                       });
@@ -358,7 +366,11 @@ export default function ProfilePage() {
                                       utils.apps.getForUser.invalidate();
                                     }}
                                   >
-                                    Confirm
+                                    {loading ? (
+                                      <Loader2 className="animate-spin" />
+                                    ) : (
+                                      "Confirm"
+                                    )}
                                   </Button>
                                 )}
                               </DialogFooter>

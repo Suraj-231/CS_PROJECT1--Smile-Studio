@@ -53,11 +53,19 @@ const TIMES = [
   { value: "17:00:00", label: "05:00 PM" },
 ];
 
-function parseTimeToMinutes(time: string) {
-  const [hour, minute] = time.split(":").map((part) => Number(part));
-  if (hour && minute) {
-    return hour * 60 + minute;
-  }
+export function parseTimeToMinutes(timeStr: string | null | undefined): number | null {
+  if (!timeStr) return null;
+  
+  // Clean up any stray spaces and split by colon
+  const parts = timeStr.trim().split(":");
+  if (parts.length < 2 || !parts[0] || !parts[1]) return null;
+
+  const hours = parseInt(parts[0], 10);
+  const minutes = parseInt(parts[1], 10);
+
+  if (isNaN(hours) || isNaN(minutes)) return null;
+
+  return hours * 60 + minutes;
 }
 
 function parseEstimatedTimeToMinutes(estimatedTime?: string | null) {
@@ -179,34 +187,55 @@ export function CalendarForm() {
     { enabled: !!book.date && !!book.dentist?.id },
   );
 
+
   const blockedTimes = useMemo(() => {
-    const blocked = new Set<string>();
-    const existingApps = bookingsByDentist.data ?? [];
+  const blocked = new Set<string>();
+  const existingApps = bookingsByDentist.data ?? [];
 
-    for (const app of existingApps) {
-      const startMinutes = parseTimeToMinutes(app.startTime);
-      const durationMinutes = parseEstimatedTimeToMinutes(
-        app.service?.estimatedTime.toString(),
-      );
-
-      if (startMinutes) {
-        const endMinutes = startMinutes + durationMinutes;
-
-        for (const slot of TIMES) {
-          const slotMinutes = parseTimeToMinutes(slot.value);
-          if (
-            slotMinutes &&
-            slotMinutes >= startMinutes &&
-            slotMinutes < endMinutes
-          ) {
-            blocked.add(slot.value);
-          }
-        }
-      }
+  // 1. Map existing bookings into raw, type-safe minute arrays [start, end]
+  const busyRanges = existingApps.map((app) => {
+    // Gracefully handle missing service properties
+    if (!app.service || app.service.estimatedTime === undefined || app.service.estimatedTime === null) {
+      return null;
     }
 
-    return blocked;
-  }, [bookingsByDentist.data]);
+    const startMinutes = parseTimeToMinutes(app.startTime);
+    const durationMinutes = Number(app.service.estimatedTime);
+
+    // If parsing fails or yields NaN, discard the calculation safely
+    if (!startMinutes) {
+      return null;
+    }
+
+    return {
+      start: startMinutes,
+      end: startMinutes + durationMinutes,
+    };
+  }).filter(Boolean) as { start: number; end: number }[];
+
+  // 2. Evaluate each static UI slot against the compiled busy ranges
+  for (const slot of TIMES) {
+    const slotMinutes = parseTimeToMinutes(slot.value);
+
+    if (slotMinutes) {
+      // A slot is blocked if it lands inside ANY of the calculated medical windows
+      const isOverlapping = busyRanges.some(
+        (range) => slotMinutes >= range.start && slotMinutes < range.end
+      );
+
+      if (isOverlapping) {
+        blocked.add(slot.value);
+      }
+    }
+  }
+
+  console.log("Verified Blocked Slots:", Array.from(blocked));
+  return blocked;
+}, [bookingsByDentist.data]);
+  
+
+  
+
 
   return (
     <div>
@@ -231,7 +260,7 @@ export function CalendarForm() {
           disabled={[
             { before: new Date() },
             { dayOfWeek: [0, 7] },
-            appsByUser?.map((a) => a.date) ?? [],
+           
           ]}
           className="rounded-lg mx-auto "
         />
