@@ -230,7 +230,7 @@ export function CalendarForm() {
           }}
           disabled={[
             { before: new Date() },
-            { dayOfWeek: [0, 6] },
+            { dayOfWeek: [0, 7] },
             appsByUser?.map((a) => a.date) ?? [],
           ]}
           className="rounded-lg mx-auto "
@@ -422,6 +422,7 @@ export function AddDentistForm() {
   const createDentist = api.dentists.create.useMutation({
     onSuccess: () => {
       toast.success("Dentist added successfully");
+      setPreviewUrl(undefined);
       setFormData({ name: "", imageUrl: undefined, description: "" });
     },
     onError: () => {

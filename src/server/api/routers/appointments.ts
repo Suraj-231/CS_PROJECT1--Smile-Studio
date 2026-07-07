@@ -413,7 +413,6 @@ export const appsRouter = createTRPCRouter({
       );
 
       // 2. Fetch the dentist's busy appointments starting from that target date onwards
-      // Since your table column is a timestamp with timezone, we pass the Date object directly
       const busyAppointments = await ctx.db
         .select({
           date: appointments.date,
@@ -430,13 +429,17 @@ export const appsRouter = createTRPCRouter({
       // 3. Create a Set of strings tracking which exact dates already have this time slot booked
       const blockedDates = new Set<string>();
       busyAppointments.forEach((app) => {
-        // Safe string normalization for exact time slot matches ("10:30:00" vs "10:30")
         const appTimeClean = app.startTime.substring(0, 5);
         const inputTimeClean = startTime.substring(0, 5);
 
         if (appTimeClean === inputTimeClean) {
-          // Normalize the date to YYYY-MM-DD string to store in the conflict cache Set
-          const dateStr = new Date(app.date).toISOString().slice(0, 10);
+          // Fall back to a local string parse sequence to eliminate timezone shifting
+          const d = new Date(app.date);
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          const dateStr = `${year}-${month}-${day}`;
+          
           blockedDates.add(dateStr);
         }
       });
@@ -447,9 +450,13 @@ export const appsRouter = createTRPCRouter({
 
       // Defensive ceiling loop over 30 days maximum to guarantee closure protection
       for (let i = 0; i < 30; i++) {
-        // Skip Sundays completely as the clinic is closed
-        const dayOfWeek = finalFollowUpDate.getUTCDay();
-        const currentDateStr = finalFollowUpDate.toISOString().slice(0, 10);
+        // FIXED: Use local .getDay() instead of .getUTCDay() to evaluate Sundays (0 = Sunday) accurately
+        const dayOfWeek = finalFollowUpDate.getDay();
+        
+        const year = finalFollowUpDate.getFullYear();
+        const month = String(finalFollowUpDate.getMonth() + 1).padStart(2, "0");
+        const day = String(finalFollowUpDate.getDate()).padStart(2, "0");
+        const currentDateStr = `${year}-${month}-${day}`;
 
         if (dayOfWeek !== 0 && !blockedDates.has(currentDateStr)) {
           slotFound = true;
@@ -477,6 +484,8 @@ export const appsRouter = createTRPCRouter({
           finalFollowUpDate.getTime() !== targetFollowUpDate.getTime(),
       };
     }),
+
+
 
   getByUserId: protectedProcedure.query(async ({ ctx }) => {
     return await ctx.db

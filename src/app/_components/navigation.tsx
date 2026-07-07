@@ -25,10 +25,19 @@ export function Header() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
   const isMobile = useIsMobile();
 
   const { data: upcoming, isLoading } = api.apps.getLatest.useQuery();
+
+
+  if(isPending){
+    return (
+      <div>
+        <Skeleton className="h-10 w-40 rounded-full p-2" />
+      </div>
+    )
+  }
   return (
     <div className="flex py-3 items-center justify-between px-8 border-b w-full">
       {isLoading ? (
@@ -151,6 +160,7 @@ export function Header() {
               Home
             </Button>
           </Link>
+       
           {session?.user.role === "admin" && (
             <Link href="/admin">
               <Button
@@ -160,6 +170,7 @@ export function Header() {
               </Button>
             </Link>
           )}
+        
           <Link href="/book">
             <Button variant={pathname === "/book" ? "default" : "ghost"}>
               Book

@@ -84,6 +84,7 @@ export default function PatientPage() {
   const patientRows = users?.data ?? [];
   const totalUsers = users?.total ?? 0;
   const totalPages = users?.totalPages ?? 1;
+  const visiblePage = users?.page ?? currentPage;
 
   useEffect(() => {
     setCurrentPage(1);
@@ -281,7 +282,7 @@ export default function PatientPage() {
                                   {/* Appointments */}
                                   <div className="flex flex-2 flex-col gap-2">
                                     <p className="text-xs tracking-wide text-muted-foreground">
-                                      Appointments
+                                      Upcoming Appointments
                                       {userData ? ` (${userData.length})` : ""}
                                     </p>
                                     {!userData || userData.length === 0 ? (
@@ -318,7 +319,7 @@ export default function PatientPage() {
                                     )}
                                   </div>
                                   <div className="flex flex-col gap-2 ">
-                                    <p className="text-xs text-muted-foreground">
+                                    {/* <p className="text-xs text-muted-foreground">
                                       Edit
                                     </p>
                                     <div className="flex flex-col gap-1">
@@ -331,6 +332,7 @@ export default function PatientPage() {
                                         }
                                       />
                                       <Button
+                                      variant="outline"
                                         className="h-6 text-xs"
                                         onClick={async () => {
                                           try {
@@ -353,8 +355,8 @@ export default function PatientPage() {
                                       >
                                         Reset users password
                                       </Button>
-                                    </div>
-                                    <DropdownMenuSeparator />
+                                    </div> */}
+                                    {/* <DropdownMenuSeparator /> */}
                                     <p className="text-xs text-muted-foreground">
                                       Settings
                                     </p>
@@ -363,7 +365,7 @@ export default function PatientPage() {
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="text-xs text-muted-foreground"
+                                          className="text-xs w-full h-5 text-muted-foreground"
                                         >
                                           <ShieldCheck />
                                           Make Admin
@@ -375,21 +377,12 @@ export default function PatientPage() {
                                           Are you sure you want to make this
                                           user an admin?
                                         </DialogDescription>
-                                      </DialogContent>
-                                      <DialogClose>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="text-xs text-muted-foreground"
-                                        >
-                                          Cancel
-                                        </Button>
-                                      </DialogClose>
                                       <DialogFooter>
                                         <Button
-                                          variant="outline"
+                                          variant="default"
+                                          
                                           size="sm"
-                                          className="text-xs  text-muted-foreground"
+                                       
                                           onClick={() => {
                                             authClient.admin.setRole({
                                               userId: user.id,
@@ -401,6 +394,9 @@ export default function PatientPage() {
                                           Confirm
                                         </Button>
                                       </DialogFooter>
+                                      </DialogContent>
+                                    
+                                       
                                     </Dialog>
                                   </div>
                                 </>
@@ -426,6 +422,7 @@ export default function PatientPage() {
         <div className="mt-4 flex justify-end">
           <ButtonGroup>
             <Button
+              type="button"
               variant="outline"
               size="icon"
               aria-label="Previous page"
@@ -437,9 +434,10 @@ export default function PatientPage() {
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <ButtonGroupText className="text-xs text-muted-foreground">
-              Page {currentPage} of {totalPages}
+              Page {visiblePage} of {totalPages}
             </ButtonGroupText>
             <Button
+              type="button"
               variant="outline"
               size="icon"
               aria-label="Next page"
@@ -450,7 +448,6 @@ export default function PatientPage() {
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
-            
           </ButtonGroup>
         </div>
       </div>

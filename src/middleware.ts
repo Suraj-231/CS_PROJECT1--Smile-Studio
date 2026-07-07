@@ -12,7 +12,7 @@ export async function middleware(request: NextRequest) {
     // return new NextResponse("Unauthorized: You are not logged in", {
     //   status: 401,
     // });
-    return NextResponse.redirect(new URL("/auth", request.url));
+    return NextResponse.redirect(new URL("/auth/sign-up", request.url));
    
   }
 
@@ -20,6 +20,10 @@ export async function middleware(request: NextRequest) {
     user?: { role?: string };
     session?: { user?: { role?: string, name: string } };
   };
+
+  if(!sessionPayload) {
+    return NextResponse.redirect(new URL("/auth/sign-up", request.url));
+  }
 
   const role =
     sessionPayload.user?.role ?? sessionPayload.session?.user?.role;

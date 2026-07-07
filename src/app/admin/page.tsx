@@ -112,7 +112,7 @@ export default function AdminPage() {
   const serviceData = getServiceDistributionData(apps?.data);
 
   return (
-    <div className="h-screen overflow-y-auto space-y-6 pb-4 md:h-auto md:overflow-visible md:pb-0">
+    <div className="h-screen overflow-y-auto space-y-4 pb-4 md:h-auto md:overflow-visible md:pb-0">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1>Welcome back, {session?.user?.name}</h1>
@@ -142,8 +142,8 @@ export default function AdminPage() {
               loading ? (
                 <Skeleton className="rounded-full px-3 py-2 w-40" />
               ) : (
-                <Button variant="outline" className="w-full text-xs sm:w-auto">
-                  Generate File <DownloadIcon />
+                <Button variant="default" className="w-full text-xs sm:w-auto">
+                  Generate Report <DownloadIcon />
                 </Button>
               )
             }
@@ -177,7 +177,7 @@ export default function AdminPage() {
             <h1 className="text-3xl ">{serviceCount ?? ""}</h1>
           </div>
         </div>
-        <div className="w-full space-y-6 p-2 md:p-6 lg:w-3/5">
+        <div className="w-full space-y-4 p-2 md:p-6 lg:w-3/5">
           {/* Right 1-Column Block: The Treatment Distribution Pie/Donut Chart */}
           <Card className="flex flex-col justify-between shadow-none bg-muted  rounded-lg lg:col-span-1">
             <CardHeader className="pb-0">
@@ -212,24 +212,26 @@ export default function AdminPage() {
                   </Pie>
                 </PieChart>
               </ChartContainer>
-              <div className="grid w-full grid-cols-2 gap-4 px-2 sm:grid-cols-3 sm:px-4">
+              <div className="grid w-full  gap-1 px-2  sm:px-4">
                 {serviceData?.map((entry, index) => (
                   <div
                     key={`service-${index}`}
-                    className="flex flex-col  gap-4 items-center"
+                    className=""
                   >
                     <p
                       style={{ color: entry.fill }}
-                      className="text-xs text-center text-shadow-muted-foreground"
+                      className="text-xs flex gap-2 items-center text-shadow-muted-foreground"
                     >
                       {entry.service}
-                    </p>
-                    <p
+                       <span
                       style={{ color: entry.fill }}
-                      className={`text-3xl font-bold`}
+                      className={`text-lg font-bold`}
                     >
                       {entry.volume}
+                    </span>
                     </p>
+
+                   
                   </div>
                 ))}
               </div>

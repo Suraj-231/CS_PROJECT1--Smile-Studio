@@ -270,7 +270,7 @@ export function SmileStudioPDFReport({
                 key={user.id} 
                 style={idx === userData.length - 1 ? styles.tableDataRowLast : styles.tableDataRow}
               >
-                <Text style={[styles.tdText, { width: "80px", color: "#64748b", fontSize: 9 }]}>{user.id}</Text>
+                <Text style={[styles.tdText, { width: "80px", color: "#64748b", fontSize: 9 }]}>{user.id.slice(0,8)}</Text>
                 <View style={{ flex: 1, display: "flex", flexDirection: "column" }}>
                   <Text style={[styles.tdText, { fontWeight: "bold" }]}>{user.name}</Text>
                   <Text style={{ fontSize: 8, color: "#64748b", marginTop: 1 }}>{user.email}</Text>

@@ -135,7 +135,7 @@ export function FollowUp({ prevApp, onReady }: FollowUpProps) {
           modifiersClassNames={{
             booked: "border-2 border-primary  rounded-md font-bold",
           }}
-          disabled={[{ before: new Date() }, { dayOfWeek: [0, 6] }]}
+          disabled={[{ before: new Date() }, { dayOfWeek: [0, 7] }]}
           className="mx-auto rounded-lg border"
         />
       )}

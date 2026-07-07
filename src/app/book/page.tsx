@@ -13,7 +13,7 @@ import {
 } from "../_components/forms";
 import Link from "next/link";
 import { ButtonGroup } from "~/components/ui/button-group";
-import { ChevronRight, ChevronLeft, CheckCircle, CircleAlert } from "lucide-react";
+import { ChevronRight, ChevronLeft, CheckCircle, CircleAlert, Loader2 } from "lucide-react";
 import { useBook } from "../hooks/use-book";
 import {authClient} from "~/server/better-auth/client";
 
@@ -63,7 +63,7 @@ type ConfirmedAppointment = {
 };
 
 export default function BookPage() {
-  const {data:session} = authClient.useSession();
+  const {data:session, isPending} = authClient.useSession();
   const [loading, setLoading] = useState(false);
   const [followUpLoading, setFollowUpLoading] = useState(false);
   const [confirmedAppointment, setConfirmedAppointment] =
@@ -179,12 +179,21 @@ export default function BookPage() {
     }
   }
 
+
+  if(isPending){
+    return (
+      <div className="flex flex-col gap-4 items-center justify-center min-h-screen">
+        <Loader2 className="animate-spint text-primary" />
+      </div>
+    )
+  }
+
   if(!session){
     return <div className="flex flex-col px-4 gap-4 items-center justify-center min-h-screen">
       <CircleAlert className="h-12 w-12 text-muted-foreground" />
       <h1 className="text-2xl font-bold">You must be signed in to book an appointment</h1>
       <p className="text-muted-foreground">Please sign in to continue.</p>
-      <Link href="/auth">
+      <Link href="/auth/sign-in">
         <Button >Sign In</Button>
       </Link>
     </div>
